@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model App {
+  id              String         @id @default(cuid()) @map("apps_id")
+  name            String
+  ga4PropertyId   String?        @map("ga4_property_id")
+  packageName     String?        @map("package_name")
+  appUrl          String?        @map("app_url")
+  appIconData     String?        @map("app_icon_data")
+  appIconUrl      String?        @map("app_icon_url")
+  ownerProfileId  String         @map("owner_profile_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  owner           Profile        @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade)
+  features        Feature[]
+  facts           FactGa4EventDaily[]
+  savedReports    SavedReport[]
+  syncJobs        SyncJob[]
+  apiLogs         ApiLog[]
+
+  @@index([ownerProfileId])
+  @@map("apps")
+}
+
+model Profile {
+  id          String             @id @default(cuid())
+  googleSub   String             @unique @map("google_sub")
+  email       String             @unique
+  name        String?
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+  apps        App[]
+  connections GoogleConnection[]
+
+  @@map("profiles")
+}
+
+model GoogleConnection {
+  id                String   @id @default(cuid())
+  profileId         String   @unique @map("profile_id")
+  accessToken       String   @map("access_token")
+  refreshToken      String?  @map("refresh_token")
+  tokenExpiry       DateTime? @map("token_expiry")
+  scopes            String
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  profile           Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("google_connections")
+}
+
+model Feature {
+  id          String         @id @default(cuid())
+  appsId      String         @map("apps_id")
+  name        String
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  app         App            @relation(fields: [appsId], references: [id], onDelete: Cascade)
+  events      FeatureEvent[]
+
+  @@unique([appsId, name])
+  @@index([appsId])
+  @@map("features")
+}
+
+model FeatureEvent {
+  id        String   @id @default(cuid())
+  featureId String   @map("feature_id")
+  eventName String   @map("event_name")
+  position  Int
+  createdAt DateTime @default(now()) @map("created_at")
+  feature   Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([featureId, eventName])
+  @@unique([featureId, position])
+  @@index([featureId, position])
+  @@map("feature_events")
+}
+
+model FactGa4EventDaily {
+  id            String   @id @default(cuid())
+  appsId        String   @map("apps_id")
+  date          DateTime @db.Date
+  eventName     String   @map("event_name")
+  appVersion    String   @default("(not set)") @map("app_version")
+  activeUsers   Int      @map("active_users")
+  eventCount    Int      @map("event_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  app           App      @relation(fields: [appsId], references: [id], onDelete: Cascade)
+
+  @@unique([appsId, date, eventName, appVersion])
+  @@index([appsId, date])
+  @@map("fact_ga4_event_daily")
+}
+
+model SavedReport {
+  id        String   @id @default(cuid())
+  appsId    String   @map("apps_id")
+  name      String
+  config    Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  app       App      @relation(fields: [appsId], references: [id], onDelete: Cascade)
+
+  @@index([appsId])
+  @@map("saved_reports")
+}
+
+model SyncJob {
+  id          String    @id @default(cuid())
+  appsId      String    @map("apps_id")
+  status      String    @default("queued")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  app         App       @relation(fields: [appsId], references: [id], onDelete: Cascade)
+
+  @@index([appsId, status])
+  @@map("sync_jobs")
+}
+
+model ApiLog {
+  id           String   @id @default(cuid())
+  appsId       String?  @map("apps_id")
+  endpoint     String
+  statusCode   Int      @map("status_code")
+  durationMs   Int      @map("duration_ms")
+  createdAt    DateTime @default(now()) @map("created_at")
+  app          App?     @relation(fields: [appsId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@map("api_logs")
+}
