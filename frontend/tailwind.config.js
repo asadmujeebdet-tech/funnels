@@ -3,15 +3,21 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"] },
       colors: {
-        ink: "#182338",
-        muted: "#718096",
-        accent: "#3459e6",
-        surface: "#ffffff",
+        ink: "#0f172a",
+        muted: "#64748b",
+        accent: { DEFAULT: "#5b5bf0", dark: "#4747d6", soft: "#eef0ff" },
+        nav: "#0b1020",
       },
       boxShadow: {
-        card: "0 8px 30px rgba(28, 42, 74, 0.06)",
+        card: "0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -8px rgba(15,23,42,0.08)",
+        glow: "0 8px 24px -6px rgba(91,91,240,0.55)",
       },
+      keyframes: {
+        rise: { "0%": { opacity: 0, transform: "translateY(6px)" }, "100%": { opacity: 1, transform: "none" } },
+      },
+      animation: { rise: "rise .35s ease-out both" },
     },
   },
   plugins: [],

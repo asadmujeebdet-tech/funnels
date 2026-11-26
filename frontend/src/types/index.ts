@@ -24,3 +24,10 @@ export type Journey = {
 };
 export type SavedReport = { id: string; name: string; config: Record<string, unknown>; updatedAt: string };
 export type SyncJob = { id: string; status: string; createdAt: string; completedAt: string | null; error: string | null };
+export type CampaignCostReport = {
+  startDate: string;
+  endDate: string;
+  currency: string | null;
+  totalCost: number;
+  campaigns: Array<{ campaign: string; cost: number }>;
+};

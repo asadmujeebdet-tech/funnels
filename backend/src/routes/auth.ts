@@ -8,6 +8,7 @@ import { requireAuth } from "../middleware/auth";
 
 export const authRouter = Router();
 const scopes = ["openid", "email", "profile", "https://www.googleapis.com/auth/analytics.readonly"];
+const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 const cookieOptions = {
   httpOnly: true,
   secure: config.NODE_ENV === "production",
@@ -22,13 +23,29 @@ function googleClient(): OAuth2Client {
   return new OAuth2Client(config.GOOGLE_CLIENT_ID, config.GOOGLE_CLIENT_SECRET, config.GOOGLE_REDIRECT_URI);
 }
 
-authRouter.get("/google", (req, res, next) => {
+authRouter.get("/google", async (req, res, next) => {
   try {
+    // Already signed in with a stored refresh token: never send the user through Google again.
+    const signed = req.cookies?.session as string | undefined;
+    const payload = signed ? verifyValue(signed) : null;
+    const [sessionProfileId, sessionExpiry] = payload?.split(":") ?? [];
+    if (sessionProfileId && Number(sessionExpiry) > Date.now()) {
+      const existing = await prisma.googleConnection.findUnique({ where: { profileId: sessionProfileId } });
+      if (existing?.refreshToken) {
+        res.redirect(config.FRONTEND_URL);
+        return;
+      }
+    }
+
     const state = `${randomUUID()}:${Date.now() + 10 * 60 * 1000}`;
     res.cookie("oauth_state", signValue(state), { ...cookieOptions, maxAge: 10 * 60 * 1000 });
+    // Google only returns a refresh token on first consent; after that a plain sign-in is enough
+    // because the refresh token is stored encrypted. Pass ?reconnect=1 to force a fresh consent.
+    const forceConsent = req.query.reconnect === "1";
     res.redirect(googleClient().generateAuthUrl({
       access_type: "offline",
-      prompt: "consent",
+      include_granted_scopes: true,
+      prompt: forceConsent ? "consent" : "select_account",
       scope: scopes,
       state,
     }));
@@ -95,8 +112,16 @@ authRouter.get("/google/callback", async (req, res, next) => {
       },
     });
 
-    const session = `${profile.id}:${Date.now() + 7 * 24 * 60 * 60 * 1000}`;
-    res.cookie("session", signValue(session), { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    const stored = await prisma.googleConnection.findUnique({ where: { profileId: profile.id } });
+    if (!stored?.refreshToken) {
+      // First sign-in did not yield an offline token (Google skips it for already-granted apps):
+      // redo the flow once with explicit consent so it is stored for good.
+      res.redirect(`${config.BACKEND_URL}/api/v1/auth/google?reconnect=1`);
+      return;
+    }
+
+    const session = `${profile.id}:${Date.now() + SESSION_MS}`;
+    res.cookie("session", signValue(session), { ...cookieOptions, maxAge: SESSION_MS });
     res.redirect(config.FRONTEND_URL);
   } catch (error) {
     next(error);

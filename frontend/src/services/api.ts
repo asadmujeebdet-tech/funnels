@@ -1,8 +1,9 @@
 import axios from "axios";
-import type { Application, Feature, Journey, Profile, SavedReport, SyncJob } from "../types";
+import type { Application, CampaignCostReport, Feature, Journey, Profile, SavedReport, SyncJob } from "../types";
 
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 export const googleAuthUrl = `${apiBaseUrl}/auth/google`;
+export const googleReconnectUrl = `${apiBaseUrl}/auth/google?reconnect=1`;
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
@@ -29,6 +30,8 @@ export const services = {
     (await api.get<Journey>(`/apps/${appId}/features/${featureId}/journey`, {
       params: { startDate, endDate, ...(appVersion ? { appVersion } : {}) },
     })).data,
+  campaigns: async (appId: string, startDate: string, endDate: string) =>
+    (await api.get<CampaignCostReport>(`/apps/${appId}/ga4/campaigns`, { params: { startDate, endDate } })).data,
   sync: async (appId: string) => (await api.post<SyncJob>(`/apps/${appId}/sync`)).data,
   saveReport: async (appId: string, name: string, config: Record<string, unknown>) =>
     (await api.post(`/apps/${appId}/reports`, { name, config })).data,

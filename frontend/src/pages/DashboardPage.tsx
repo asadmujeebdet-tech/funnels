@@ -1,11 +1,13 @@
-import { BarChart3, CalendarDays, Check, ChevronDown, CircleAlert, Database, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, CircleAlert, Database, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AppShell } from "../components/AppShell";
 import { FeatureForm } from "../components/FeatureForm";
 import { JourneyChart } from "../components/JourneyChart";
 import { JourneyTable } from "../components/JourneyTable";
-import { googleAuthUrl, services } from "../services/api";
-import { daysAgo } from "../utils/dates";
+import { Landing } from "../components/Landing";
+import { PageHeader } from "../components/PageHeader";
+import { services } from "../services/api";
+import { daysAgo, messageFrom } from "../utils/dates";
 import type { Application, Feature, Journey, Profile, SavedReport, SyncJob } from "../types";
 
 type Props = {
@@ -13,14 +15,6 @@ type Props = {
   googleConnected: boolean;
   onLogout: () => void;
 };
-
-function messageFrom(error: unknown): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { error?: string } } }).response;
-    if (response?.data?.error) return response.data.error;
-  }
-  return error instanceof Error ? error.message : "Something went wrong";
-}
 
 export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
   const [apps, setApps] = useState<Application[]>([]);
@@ -196,41 +190,19 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
   }
 
   if (!profile) {
-    return (
-      <AppShell profile={null} onLogout={onLogout}>
-        <div className="mx-auto mt-12 max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-card sm:p-12">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 text-accent"><BarChart3 size={27} /></div>
-          <h1 className="mt-5 text-2xl font-bold tracking-tight">Understand your feature journeys</h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500">
-            Connect Google Analytics, organize ordered events by feature, and compare active-user populations across each event.
-          </p>
-          <a className="button-primary mt-7" href={googleAuthUrl}>Connect with Google</a>
-          <p className="mt-5 text-xs text-slate-400">Google Analytics access is read-only. Your tokens remain encrypted on the server.</p>
-        </div>
-      </AppShell>
-    );
+    return <AppShell profile={null} onLogout={onLogout}><Landing /></AppShell>;
   }
 
   return (
     <AppShell profile={profile} onLogout={onLogout}>
-      <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <p className="text-sm font-semibold text-accent">Analytics workspace</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Feature journey analyzer</h1>
-          <p className="mt-2 text-sm text-muted">Compare event populations across your product features.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {!googleConnected && <a className="button-primary" href={googleAuthUrl}>Connect Google Analytics</a>}
-          {googleConnected && <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700"><ShieldCheck size={17} /> Google connected</span>}
-        </div>
-      </div>
+      <PageHeader eyebrow="Analytics workspace" title="Feature journey analyzer" subtitle="Compare event populations across your product features." googleConnected={googleConnected} />
 
       {error && <div role="alert" className="mb-5 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"><CircleAlert size={18} className="mt-0.5 shrink-0" />{error}<button className="ml-auto" onClick={() => setError("")}>×</button></div>}
       {notice && <div role="status" className="mb-5 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"><Check size={17} />{notice}<button className="ml-auto" onClick={() => setNotice("")}>×</button></div>}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card sm:p-6">
+          <section className="card p-5 sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold">Analysis filters</h2>
@@ -246,7 +218,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
                     <option value="">Select an application</option>
                     {apps.map((app) => <option key={app.id} value={app.id}>{app.name}</option>)}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-3 text-slate-400" size={16} />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16} />
                 </div>
               </div>
               <div>
@@ -256,16 +228,16 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
                     <option value="">Select a feature</option>
                     {features.map((feature) => <option key={feature.id} value={feature.id}>{feature.name}</option>)}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-3 text-slate-400" size={16} />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-3.5 text-slate-400" size={16} />
                 </div>
               </div>
               <div>
                 <label className="label" htmlFor="start-date">Start date</label>
-                <div className="relative"><CalendarDays className="absolute left-3 top-3 text-slate-400" size={16} /><input id="start-date" className="field pl-9" type="date" value={startDate} max={endDate} onChange={(event) => setStartDate(event.target.value)} /></div>
+                <div className="relative"><CalendarDays className="absolute left-3.5 top-3.5 text-slate-400" size={16} /><input id="start-date" className="field pl-10" type="date" value={startDate} max={endDate} onChange={(event) => setStartDate(event.target.value)} /></div>
               </div>
               <div>
                 <label className="label" htmlFor="end-date">End date</label>
-                <div className="relative"><CalendarDays className="absolute left-3 top-3 text-slate-400" size={16} /><input id="end-date" className="field pl-9" type="date" value={endDate} min={startDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setEndDate(event.target.value)} /></div>
+                <div className="relative"><CalendarDays className="absolute left-3.5 top-3.5 text-slate-400" size={16} /><input id="end-date" className="field pl-10" type="date" value={endDate} min={startDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setEndDate(event.target.value)} /></div>
               </div>
             </div>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -282,7 +254,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
           </section>
 
           {journey && (
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card">
+            <section className="card overflow-hidden">
               <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:px-6">
                 <div>
                   <h2 className="font-bold">{journey.feature.name}</h2>
@@ -302,7 +274,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
               </div>
             </section>
           )}
-          {loading && <div className="rounded-xl bg-white p-8 text-center text-sm text-slate-500 shadow-card">Loading GA4 report…</div>}
+          {loading && <div className="grid gap-4 sm:grid-cols-3">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-24" />)}</div>}
           {!journey && !loading && selectedFeature && selectedApp?.ga4PropertyId && googleConnected && (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">No journey data available for the selected filters.</div>
           )}
@@ -313,7 +285,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
         </div>
 
         <aside className="space-y-5">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+          <section className="card p-5">
             <div className="mb-4 flex items-center gap-2"><Plus className="text-accent" size={18} /><h2 className="font-bold">Applications</h2></div>
             <form onSubmit={(event) => void createApp(event)} className="flex gap-2">
               <input className="field min-w-0" aria-label="Application name" placeholder="Application name" value={appName} onChange={(event) => setAppName(event.target.value)} required maxLength={120} />
@@ -324,7 +296,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
 
           {selectedApp && (
             <>
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+              <section className="card p-5">
                 <div className="mb-4 flex items-center gap-2"><ShieldCheck className="text-accent" size={18} /><h2 className="font-bold">GA4 property</h2></div>
                 <form onSubmit={(event) => void validateProperty(event)} className="space-y-3">
                   <div>
@@ -336,7 +308,7 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
                 </form>
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+              <section className="card p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <div><h2 className="font-bold">Create feature</h2><p className="mt-1 text-xs text-slate-500">Name + ordered event list</p></div>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{features.length} saved</span>
@@ -344,14 +316,14 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
                 <FeatureForm knownEvents={eventsDiscovered ? events : null} onCreate={createFeature} />
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+              <section className="card p-5">
                 <h2 className="font-bold">Historical data</h2>
                 <p className="mt-1 text-xs leading-5 text-slate-500">Sync the last 90 days into Supabase for faster reporting and saved data snapshots.</p>
                 <button onClick={() => void startSync()} disabled={!selectedApp.ga4PropertyId || !googleConnected} className="button-secondary mt-4 w-full"><RefreshCw size={15} className="mr-2" />Start synchronization</button>
                 {syncJobs[0] && <p className="mt-3 text-xs text-slate-500">Latest sync: <span className="font-semibold capitalize">{syncJobs[0].status}</span>{syncJobs[0].error ? ` · ${syncJobs[0].error}` : ""}</p>}
               </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+              <section className="card p-5">
                 <h2 className="font-bold">Saved reports</h2>
                 {savedReports.length === 0
                   ? <p className="mt-2 text-xs text-slate-500">Saved analysis configurations will appear here.</p>
@@ -366,5 +338,5 @@ export function DashboardPage({ profile, googleConnected, onLogout }: Props) {
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-xl bg-slate-50 px-4 py-3"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tracking-tight">{value}</p></div>;
+  return <div className="rounded-xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white px-4 py-3.5"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-extrabold tracking-tight tabular-nums">{value}</p></div>;
 }

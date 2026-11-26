@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { enforceGaQuota } from "../middleware/ga-quota";
 import { dateRangeSchema } from "../schemas/app";
 import { getAnalyticsClient } from "../integrations/google-analytics/client";
-import { discoverEvents, getEventPopulations, validateProperty } from "../integrations/google-analytics/reports";
+import { discoverEvents, getCampaignCosts, getEventPopulations, validateProperty } from "../integrations/google-analytics/reports";
 import { getOwnedApp } from "../services/apps";
 import { runHistoricalSync } from "../services/sync";
 
@@ -40,6 +40,28 @@ analyticsRouter.get("/apps/:appId/ga4/events", async (req, res, next) => {
     const client = await getAnalyticsClient(req.profileId!);
     const events = await discoverEvents(client, app.ga4PropertyId, range.startDate, range.endDate, range.appVersion);
     res.json({ events });
+  } catch (error) {
+    next(error);
+  }
+});
+
+analyticsRouter.get("/apps/:appId/ga4/campaigns", async (req, res, next) => {
+  try {
+    const app = await getOwnedApp(req.params.appId, req.profileId!);
+    if (!app.ga4PropertyId) {
+      res.status(400).json({ error: "Validate a GA4 property ID first" });
+      return;
+    }
+    const range = dateRangeSchema.parse(req.query);
+    const client = await getAnalyticsClient(req.profileId!);
+    const { campaigns, currency } = await getCampaignCosts(client, app.ga4PropertyId, range.startDate, range.endDate);
+    res.json({
+      startDate: range.startDate,
+      endDate: range.endDate,
+      currency,
+      totalCost: campaigns.reduce((sum, row) => sum + row.cost, 0),
+      campaigns,
+    });
   } catch (error) {
     next(error);
   }

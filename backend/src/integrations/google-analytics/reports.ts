@@ -83,3 +83,37 @@ export async function getEventPopulations(
 export async function validateProperty(client: BetaAnalyticsDataClient, propertyId: string): Promise<void> {
   await client.getMetadata({ name: `properties/${propertyId}/metadata` });
 }
+
+export type CampaignCost = { campaign: string; cost: number };
+
+/** Google Ads campaigns (dimension) with cost as the only metric. Requires GA4 linked to Google Ads. */
+export async function getCampaignCosts(
+  client: BetaAnalyticsDataClient,
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ campaigns: CampaignCost[]; currency: string | null }> {
+  const cacheKey = `campaigns:${propertyId}:${startDate}:${endDate}`;
+  const cached = memoryCache.get<{ campaigns: CampaignCost[]; currency: string | null }>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const [report] = await client.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: "sessionGoogleAdsCampaignName" }],
+    metrics: [{ name: "advertiserAdCost" }],
+    orderBys: [{ metric: { metricName: "advertiserAdCost" }, desc: true }],
+    limit: 10000,
+  });
+  const campaigns = (report.rows ?? [])
+    .map((row) => ({
+      campaign: row.dimensionValues?.[0]?.value ?? "(not set)",
+      cost: Number(row.metricValues?.[0]?.value ?? 0),
+    }))
+    .filter((row) => row.campaign !== "(not set)" && row.campaign !== "(organic)");
+  const result = { campaigns, currency: report.metadata?.currencyCode ?? null };
+  memoryCache.set(cacheKey, result, config.GA4_CACHE_TTL);
+  return result;
+}

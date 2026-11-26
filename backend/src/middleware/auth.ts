@@ -1,5 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
-import { verifyValue } from "../utils/crypto";
+import { config } from "../config/env";
+import { signValue, verifyValue } from "../utils/crypto";
+
+const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
 
 declare global {
   namespace Express {
@@ -24,5 +27,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   }
 
   req.profileId = profileId;
+  // Sliding session: renew the cookie once less than 15 days remain so active users stay signed in.
+  if (Number(expiresAt) - Date.now() < SESSION_MS / 2) {
+    res.cookie("session", signValue(`${profileId}:${Date.now() + SESSION_MS}`), {
+      httpOnly: true,
+      secure: config.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MS,
+    });
+  }
   next();
 }

@@ -1,5 +1,6 @@
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 import { UserRefreshClient } from "google-auth-library";
+import { config } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { decrypt, encrypt } from "../../utils/crypto";
 
@@ -13,8 +14,8 @@ export async function getAnalyticsClient(profileId: string): Promise<BetaAnalyti
   }
 
   const oauth = new UserRefreshClient({
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientId: config.GOOGLE_CLIENT_ID,
+    clientSecret: config.GOOGLE_CLIENT_SECRET,
     refreshToken: decrypt(connection.refreshToken),
   });
   oauth.setCredentials({
