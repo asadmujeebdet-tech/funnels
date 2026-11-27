@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
+import { z } from "zod";
 
 for (const path of [
   resolve(process.cwd(), ".env.local"),
