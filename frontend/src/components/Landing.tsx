@@ -22,7 +22,7 @@ export function Landing() {
           Understand engagement across <span className="bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">every feature</span>.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-secondary">
-          This shared workspace is ready for your Operations team. Configure the company's Google service account on the backend to load live GA4 data.
+          This shared workspace is ready for your Operations team. Connect the company's Google account with read-only Analytics access to load live GA4 data.
         </p>
       </section>
       <section className="mt-16 grid gap-4 md:grid-cols-3">
