@@ -1,10 +1,10 @@
-import { BetaAnalyticsDataClient } from "@google-analytics/data";
+import { BetaAnalyticsDataClient, v1alpha } from "@google-analytics/data";
 import { UserRefreshClient } from "google-auth-library";
 import { config } from "../../config/env";
 import { prisma } from "../../config/prisma";
 import { decrypt, encrypt } from "../../utils/crypto";
 
-export async function getAnalyticsClient(profileId: string): Promise<BetaAnalyticsDataClient> {
+async function getOAuthClient(profileId: string): Promise<UserRefreshClient> {
   const connection = await prisma.googleConnection.findUnique({ where: { profileId } });
   if (!connection) {
     throw Object.assign(new Error("Connect a Google account before using GA4"), { status: 401 });
@@ -37,5 +37,14 @@ export async function getAnalyticsClient(profileId: string): Promise<BetaAnalyti
     });
   });
 
-  return new BetaAnalyticsDataClient({ authClient: oauth });
+  return oauth;
+}
+
+export async function getAnalyticsClient(profileId: string): Promise<BetaAnalyticsDataClient> {
+  return new BetaAnalyticsDataClient({ authClient: await getOAuthClient(profileId) });
+}
+
+/** The funnel report lives in the v1alpha Data API. */
+export async function getFunnelClient(profileId: string): Promise<v1alpha.AlphaAnalyticsDataClient> {
+  return new v1alpha.AlphaAnalyticsDataClient({ authClient: await getOAuthClient(profileId) });
 }

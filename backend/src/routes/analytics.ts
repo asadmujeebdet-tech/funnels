@@ -5,11 +5,12 @@ import { prisma } from "../config/prisma";
 import { requireAuth } from "../middleware/auth";
 import { enforceGaQuota } from "../middleware/ga-quota";
 import { dateRangeSchema } from "../schemas/app";
-import { getAnalyticsClient } from "../integrations/google-analytics/client";
+import { getAnalyticsClient, getFunnelClient } from "../integrations/google-analytics/client";
 import {
   discoverEvents,
   getCampaignCosts,
   getEventPopulations,
+  getFunnelUsers,
   getOverviewChoices,
   getOverviewMetrics,
   validateProperty,
@@ -127,28 +128,49 @@ analyticsRouter.get("/apps/:appId/ga4/overview", async (req, res, next) => {
       orderBy: { name: "asc" },
     });
     const eventNames = [...new Set(features.flatMap((feature) => feature.events.map((event) => event.eventName)))];
-    const [metrics, choices, populations] = await Promise.all([
+    const funnelClient = await getFunnelClient(req.profileId!);
+    const [metrics, choices, populations, funnelUsers] = await Promise.all([
       getOverviewMetrics(client, app.ga4PropertyId, range.startDate, range.endDate, range.appVersion, range.country),
       getOverviewChoices(client, app.ga4PropertyId, range.startDate, range.endDate),
       eventNames.length
         ? getEventPopulations(client, app.ga4PropertyId, eventNames, range.startDate, range.endDate, range.appVersion, range.country)
         : Promise.resolve(new Map()),
+      Promise.all(features.map((feature) => getFunnelUsers(
+        funnelClient,
+        app.ga4PropertyId!,
+        feature.events.map((event) => event.eventName),
+        range.startDate,
+        range.endDate,
+        range.appVersion,
+      ))),
     ]);
     res.json({
       metrics,
       appVersions: choices.appVersions,
       countries: choices.countries,
-      funnels: features.map((feature) => ({
+      funnels: features.map((feature, featureIndex) => {
+        const names = feature.events.map((event) => event.eventName);
+        const users = funnelUsers[featureIndex];
+        // Sequential funnel users when available, otherwise independent per-event users.
+        const featurePopulations = users
+          ? new Map(names.map((name, index) => [name, {
+            eventName: name,
+            activeUsers: users[index] ?? 0,
+            eventCount: populations.get(name)?.eventCount ?? 0,
+          }]))
+          : populations;
+        return {
         id: feature.id,
         name: feature.name,
-        events: buildJourney(feature.events.map((event) => event.eventName), populations)
+        events: buildJourney(names, featurePopulations)
           .map(({ eventName, activeUsers, eventCount, dropPercentage }) => ({
             eventName,
             activeUsers,
             eventCount,
             dropPercentage,
           })),
-      })),
+        };
+      }),
     });
   } catch (error) {
     next(error);

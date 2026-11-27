@@ -1,4 +1,4 @@
-import type { BetaAnalyticsDataClient } from "@google-analytics/data";
+import type { BetaAnalyticsDataClient, v1alpha } from "@google-analytics/data";
 import { config } from "../../config/env";
 import { memoryCache } from "../../cache/memory-cache";
 import type { EventPopulation } from "../../analytics/journey";
@@ -104,6 +104,56 @@ export async function getEventPopulations(
   }
   memoryCache.set(cacheKey, [...populations], config.GA4_CACHE_TTL);
   return populations;
+}
+
+const MAX_FUNNEL_STEPS = 10;
+
+/**
+ * Sequential (closed) funnel, matching GA4 Explore > Funnel exploration: a user counts at a step
+ * only after completing the previous steps in order. Returns active users per step in step order,
+ * or null when the funnel can't be run (too many steps, API unavailable) so callers can fall back.
+ */
+export async function getFunnelUsers(
+  client: v1alpha.AlphaAnalyticsDataClient,
+  propertyId: string,
+  eventNames: string[],
+  startDate: string,
+  endDate: string,
+  appVersion?: string,
+): Promise<number[] | null> {
+  if (eventNames.length === 0 || eventNames.length > MAX_FUNNEL_STEPS) {
+    return null;
+  }
+  const cacheKey = `funnel:${propertyId}:${eventNames.join(",")}:${startDate}:${endDate}:${appVersion ?? ""}`;
+  const cached = memoryCache.get<number[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  try {
+    const [report] = await client.runFunnelReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      funnel: {
+        isOpenFunnel: false,
+        steps: eventNames.map((eventName, index) => ({
+          name: `${index + 1}. ${eventName}`,
+          filterExpression: { funnelEventFilter: { eventName } },
+        })),
+      },
+      dimensionFilter: versionFilter(appVersion),
+    });
+    const table = report.funnelTable;
+    const usersIndex = Math.max(0, (table?.metricHeaders ?? []).findIndex((header) => header.name === "activeUsers"));
+    const users = (table?.rows ?? []).map((row) => Number(row.metricValues?.[usersIndex]?.value ?? 0));
+    if (users.length !== eventNames.length) {
+      return null;
+    }
+    memoryCache.set(cacheKey, users, config.GA4_CACHE_TTL);
+    return users;
+  } catch (error) {
+    console.error("GA4 funnel report failed; falling back to independent event populations", error);
+    return null;
+  }
 }
 
 export async function validateProperty(client: BetaAnalyticsDataClient, propertyId: string): Promise<void> {
