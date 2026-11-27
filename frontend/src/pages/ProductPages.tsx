@@ -133,7 +133,7 @@ function formatEngagementTime(seconds: number | null): string {
   return `${remainder}s`;
 }
 
-function MetricCard({ label, value, note, icon: Icon, tone }: {
+function MetricCard({ label, value, icon: Icon, tone }: {
   label: string;
   value: string;
   icon: typeof Users;
