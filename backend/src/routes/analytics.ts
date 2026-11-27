@@ -98,13 +98,14 @@ analyticsRouter.get("/apps/:appId/ga4/campaigns", async (req, res, next) => {
       totalCost: availableCosts.length === campaigns.length && availableCosts.length > 0
         ? availableCosts.reduce((sum, cost) => sum + cost, 0)
         : null,
-      campaigns: campaigns.map(({ campaign, cost, impressions, clicks, ctr, cpc }) => ({
+      campaigns: campaigns.map(({ campaign, cost, impressions, clicks, ctr, cpc, trend: campaignTrend }) => ({
         campaign,
         cost,
         impressions,
         clicks,
         ctr,
         cpc,
+        trend: campaignTrend,
       })),
       trend,
     });
