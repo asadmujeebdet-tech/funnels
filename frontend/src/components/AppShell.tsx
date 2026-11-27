@@ -84,7 +84,7 @@ export function AppShell({ profile, onLogout, children }: Props) {
             <ChevronDown size={14} className="hidden text-muted sm:block" />
           </div>
         </header>
-        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-8 sm:py-9 animate-rise">{children}</main>
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-8 sm:py-9">{children}</main>
       </div>
       {toastMessage && <div role={toastMessage.kind === "error" ? "alert" : "status"} className={`fixed right-4 top-[82px] z-[70] max-w-[min(90vw,440px)] rounded-lg border px-4 py-3 text-sm shadow-lg ${toastMessage.kind === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{toastMessage.message}</div>}
     </div>

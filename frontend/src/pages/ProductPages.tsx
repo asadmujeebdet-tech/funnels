@@ -434,10 +434,7 @@ function ConfirmDialog({ title, description, onCancel, onConfirm }: { title: str
 const appSchema = z.object({
   name: z.string().trim().min(1, "App name is required").max(120),
   packageName: z.string().trim().regex(/^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/, "Enter a valid package or bundle identifier"),
-  appUrl: z.string().trim().url("Enter a valid application URL").refine((value) => {
-    try { const url = new URL(value); return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password; }
-    catch { return false; }
-  }, "Enter an HTTP or HTTPS URL without credentials"),
+  appUrl: z.string().optional(),
   ga4PropertyId: z.string().trim().regex(/^\d+$/, "Enter a numeric GA4 Property ID"),
   appIconData: z.string().nullable().optional(),
   appIconUrl: z.string().url().nullable().optional(),
@@ -451,7 +448,6 @@ export function ManageAppsPage(props: Props) {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Application | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
-  const [appUrlValue, setAppUrlValue] = useState("");
   const [iconLookupBusy, setIconLookupBusy] = useState(false);
   const [iconLookupError, setIconLookupError] = useState("");
   const [iconSource, setIconSource] = useState<"google-play" | "upload" | "">("");
@@ -461,23 +457,21 @@ export function ManageAppsPage(props: Props) {
   const iconLookupSequence = useRef(0);
   const [iconFetchTick, setIconFetchTick] = useState(0);
   const { toast } = useWorkspace();
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<AppFormValues>({ resolver: zodResolver(appSchema), defaultValues: { name: "", packageName: "", appUrl: "", ga4PropertyId: "", appIconData: null } });
-  const appUrlField = register("appUrl");
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<AppFormValues>({ resolver: zodResolver(appSchema), defaultValues: { name: "", packageName: "", appUrl: "", ga4PropertyId: "", appIconData: null } });
+  const packageValue = (watch("packageName") ?? "").trim();
+  const playUrl = /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/.test(packageValue) ? `https://play.google.com/store/apps/details?id=${packageValue}` : "";
   useRegisterRefresh(loadApps, [loadApps]);
   const filteredApps = apps.filter((app) => `${app.name} ${app.packageName ?? ""} ${app.appUrl ?? ""}`.toLowerCase().includes(search.trim().toLowerCase()));
 
   useEffect(() => {
-    if (!dialogOpen || !appUrlValue || iconSource !== "") return;
-    let candidate: URL;
-    try { candidate = new URL(appUrlValue); } catch { return; }
-    if (candidate.hostname !== "play.google.com" || candidate.pathname !== "/store/apps/details") return;
+    if (!dialogOpen || !playUrl || iconSource !== "") return;
     const requestId = ++iconLookupSequence.current;
     const timer = window.setTimeout(() => {
       void (async () => {
         setIconLookupBusy(true);
         setIconLookupError("");
         try {
-          const icon = await services.googlePlayIcon(appUrlValue);
+          const icon = await services.googlePlayIcon(playUrl);
           if (requestId !== iconLookupSequence.current) return;
           await new Promise<void>((resolve, reject) => {
             const image = new Image();
@@ -502,14 +496,13 @@ export function ManageAppsPage(props: Props) {
       window.clearTimeout(timer);
       if (requestId === iconLookupSequence.current) iconLookupSequence.current += 1;
     };
-  }, [appUrlValue, dialogOpen, iconSource, iconFetchTick, setValue]);
+  }, [playUrl, dialogOpen, iconSource, iconFetchTick, setValue]);
 
   function openForm(app?: Application) {
     const target = app ?? null;
     setEditingApp(target);
     setFormError("");
     setIconPreview(target?.appIconData || target?.appIconUrl || null);
-    setAppUrlValue(target?.appUrl ?? "");
     setIconLookupError("");
     setIconLookupBusy(false);
     setIconSource(target?.appIconData ? "upload" : target?.appIconUrl ? "google-play" : "");
@@ -541,7 +534,7 @@ export function ManageAppsPage(props: Props) {
     setFormError("");
     setBusy(true);
     try {
-      const input: ApplicationInput = { ...values, appIconData: values.appIconData || null, appIconUrl: values.appIconUrl || null };
+      const input: ApplicationInput = { ...values, appUrl: `https://play.google.com/store/apps/details?id=${values.packageName}`, appIconData: values.appIconData || null, appIconUrl: values.appIconUrl || null };
       const result = editingApp ? await services.updateApp(editingApp.id, input) : await services.createApp(input);
       setApps((items) => editingApp ? items.map((item) => item.id === result.id ? result : item) : [result, ...items]);
       toast(editingApp ? "App updated." : "App added.");
@@ -596,11 +589,10 @@ export function ManageAppsPage(props: Props) {
       {dialogOpen && <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeForm(); }}><Card className="max-h-[92vh] w-full max-w-2xl overflow-y-auto p-5 sm:p-6"><div className="flex items-start justify-between"><div><h2 className="text-base font-semibold text-primary">{editingApp ? "Edit app" : "Add app"}</h2><p className="mt-1 text-xs text-secondary">Connect your product to its GA4 Property ID.</p></div><button className="rounded p-1.5 text-muted hover:bg-surface-soft" onClick={closeForm} aria-label="Close dialog"><X size={17} /></button></div>
         <form onSubmit={(event) => void handleSubmit(saveApp)(event)} className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><label className="label" htmlFor="app-name">App name</label><input id="app-name" className="field" placeholder="Fitness Pro" {...register("name")} />{errors.name && <p className="mt-1 text-xs text-rose-600">{errors.name.message}</p>}</div>
-          <div><label className="label" htmlFor="app-package">Package name</label><input id="app-package" className="field" placeholder="com.example.fitness" {...register("packageName")} />{errors.packageName && <p className="mt-1 text-xs text-rose-600">{errors.packageName.message}</p>}</div>
-          <div><label className="label" htmlFor="app-url">Play Store URL</label><input id="app-url" className="field" type="url" placeholder="https://play.google.com/store/apps/details?id=com.example.app" name={appUrlField.name} ref={appUrlField.ref} onBlur={appUrlField.onBlur} onChange={(event) => { void appUrlField.onChange(event); const value = event.target.value; setAppUrlValue(value); setIconLookupError(""); setIconLookupBusy(false); if (iconSource === "google-play") { setIconSource(""); setIconPreview(null); setValue("appIconUrl", null); setValue("appIconData", null); } }} />{errors.appUrl && <p className="mt-1 text-xs text-rose-600">{errors.appUrl.message}</p>}</div>
+          <div><label className="label" htmlFor="app-package">Package name</label><input id="app-package" className="field" placeholder="com.example.fitness" {...register("packageName", { onChange: () => { if (iconSource === "google-play") { setIconSource(""); setIconPreview(null); setValue("appIconUrl", null); } } })} />{errors.packageName && <p className="mt-1 text-xs text-rose-600">{errors.packageName.message}</p>}</div>
           <div><label className="label" htmlFor="app-property">GA4 Property ID</label><input id="app-property" className="field" inputMode="numeric" placeholder="412345678" {...register("ga4PropertyId")} />{errors.ga4PropertyId && <p className="mt-1 text-xs text-rose-600">{errors.ga4PropertyId.message}</p>}</div>
           <div><label className="label" htmlFor="app-icon">App icon</label><div className="flex flex-wrap items-center gap-3"><label htmlFor="app-icon" className="button-secondary cursor-pointer"><ImagePlus size={15} />Upload fallback</label><input id="app-icon" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void handleIconFile(event.target.files?.[0])} />{iconPreview ? <img src={iconPreview} alt="App icon preview" className="h-10 w-10 rounded-lg border border-line object-cover" onError={() => { if (iconSource === "google-play") { setIconPreview(null); setValue("appIconUrl", null); setIconLookupError("The app icon could not be loaded. Upload an icon instead."); } }} /> : <span className="text-xs text-muted">No icon selected</span>}{iconPreview && <button type="button" className="text-xs text-rose-600 hover:text-rose-700" onClick={() => { setIconPreview(null); setIconSource(""); setValue("appIconData", null); setValue("appIconUrl", null); }}>Remove icon</button>}</div>{iconLookupBusy && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-secondary" role="status"><RefreshCw size={13} className="animate-spin" />Checking Google Play icon…</p>}{iconLookupError && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{iconLookupError}</p>}<input type="hidden" {...register("appIconData")} /></div>
-          <div className="sm:col-span-2"><label className="label" htmlFor="app-icon-url">App icon URL</label><div className="flex gap-2"><input id="app-icon-url" className="field font-mono text-xs" type="url" placeholder="Fetched automatically from the Play Store URL" {...register("appIconUrl", { onChange: (event) => { const value = event.target.value.trim(); setIconPreview(value || null); setIconSource(value ? "google-play" : ""); if (value) setValue("appIconData", null); } })} /><button type="button" className="button-secondary shrink-0" disabled={iconLookupBusy || !appUrlValue} onClick={() => { setIconLookupError(""); setIconSource(""); setValue("appIconUrl", null); setIconPreview(null); setIconFetchTick((n) => n + 1); }}><RefreshCw size={14} className={iconLookupBusy ? "animate-spin" : ""} />Fetch icon</button></div><p className="mt-1 text-[11px] text-muted">Enter the Play Store URL above, then fetch the official icon.</p></div>
+          <div className="sm:col-span-2"><label className="label" htmlFor="app-icon-url">App icon URL</label><div className="flex gap-2"><input id="app-icon-url" className="field font-mono text-xs" type="url" placeholder="Fetched automatically from the package name" {...register("appIconUrl", { onChange: (event) => { const value = event.target.value.trim(); setIconPreview(value || null); setIconSource(value ? "google-play" : ""); if (value) setValue("appIconData", null); } })} /><button type="button" className="button-secondary shrink-0" disabled={iconLookupBusy || !playUrl} onClick={() => { setIconLookupError(""); setIconSource(""); setValue("appIconUrl", null); setIconPreview(null); setIconFetchTick((n) => n + 1); }}><RefreshCw size={14} className={iconLookupBusy ? "animate-spin" : ""} />Fetch icon</button></div><p className="mt-1 text-[11px] text-muted">The icon is fetched from the Play Store using the package name.</p></div>
           {formError && <div className="sm:col-span-2"><Alert>{formError}</Alert></div>}
           <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2"><button type="button" className="button-secondary" onClick={closeForm}>Cancel</button><button className="button-primary" disabled={busy}>{busy ? "Saving…" : editingApp ? "Save changes" : "Save app"}</button></div>
         </form></Card></div>}
