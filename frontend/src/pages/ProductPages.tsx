@@ -39,11 +39,11 @@ import type { Application, Feature, OverviewData, OverviewMetrics, Profile } fro
 type Props = { profile: Profile; googleConnected: boolean; onLogout: () => void };
 
 function PageTitle({ title, subtitle, action }: { title: string; subtitle: string; action?: ReactNode }) {
-  return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-[26px] font-semibold tracking-tight text-primary">{title}</h1><p className="mt-1.5 max-w-2xl text-sm text-secondary">{subtitle}</p></div>{action}</div>;
+  return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="page-title">{title}</h1><p className="mt-1.5 max-w-2xl text-sm text-secondary">{subtitle}</p></div>{action}</div>;
 }
 
 function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-xl border border-line bg-surface shadow-sm ${className}`}>{children}</section>;
+  return <section className={`rounded-2xl border border-line bg-surface shadow-card ${className}`}>{children}</section>;
 }
 
 function Alert({ children, kind = "error" }: { children: ReactNode; kind?: "error" | "info" | "success" }) {

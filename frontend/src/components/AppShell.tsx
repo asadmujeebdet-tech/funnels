@@ -49,9 +49,10 @@ export function AppShell({ profile, onLogout, children }: Props) {
             {!sidebarCollapsed && <span><span className="block text-sm font-bold tracking-tight text-white">Journey Analytics</span><span className="mt-0.5 block text-[11px] text-slate-400">GA4 Product Analytics</span></span>}
           </NavLink>
         </div>
-        <nav className="mt-9 flex-1 space-y-1" aria-label="Primary navigation">
+        <p className={`mt-9 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500 ${sidebarCollapsed ? "sr-only" : ""}`}>Workspace</p>
+        <nav className="mt-3 flex-1 space-y-1" aria-label="Primary navigation">
           {nav.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} title={sidebarCollapsed ? label : undefined} aria-label={label} className={({ isActive }) => `flex items-center rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors ${sidebarCollapsed ? "justify-center" : "gap-3"} ${isActive ? "bg-indigo-500/15 text-indigo-200 ring-1 ring-inset ring-indigo-400/15" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+            <NavLink key={to} to={to} onClick={() => setMobileOpen(false)} title={sidebarCollapsed ? label : undefined} aria-label={label} className={({ isActive }) => `flex items-center rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors ${sidebarCollapsed ? "justify-center" : "gap-3"} ${isActive ? "bg-gradient-to-r from-indigo-500/25 to-indigo-500/5 text-white ring-1 ring-inset ring-indigo-400/20" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
               <Icon size={17} strokeWidth={1.8} />{!sidebarCollapsed && label}
             </NavLink>
           ))}
@@ -66,7 +67,7 @@ export function AppShell({ profile, onLogout, children }: Props) {
       </aside>
 
       <div className={sidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[250px]"}>
-        <header className="sticky top-0 z-30 flex min-h-[68px] items-center justify-between gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur sm:px-7">
+        <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-md sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
             <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-secondary hover:bg-surface-soft lg:hidden" aria-label="Open navigation"><Menu size={19} /></button>
             <button onClick={() => setSidebarCollapsed((current) => !current)} className="hidden rounded-lg p-2 text-secondary hover:bg-surface-soft lg:inline-flex" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
@@ -83,7 +84,7 @@ export function AppShell({ profile, onLogout, children }: Props) {
             <ChevronDown size={14} className="hidden text-muted sm:block" />
           </div>
         </header>
-        <main className="mx-auto max-w-[1480px] px-4 py-6 sm:px-7 sm:py-8">{children}</main>
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-8 sm:py-9 animate-rise">{children}</main>
       </div>
       {toastMessage && <div role={toastMessage.kind === "error" ? "alert" : "status"} className={`fixed right-4 top-[82px] z-[70] max-w-[min(90vw,440px)] rounded-lg border px-4 py-3 text-sm shadow-lg ${toastMessage.kind === "error" ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>{toastMessage.message}</div>}
     </div>

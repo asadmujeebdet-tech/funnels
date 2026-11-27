@@ -190,7 +190,7 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
   return (
     <AppShell profile={profile} googleConnected={googleConnected} onLogout={onLogout}>
       <div className="mb-6 flex items-end justify-between gap-4">
-        <div><h1 className="text-[26px] font-semibold tracking-tight text-primary">Campaigns</h1><p className="mt-1.5 max-w-2xl text-sm text-secondary">Campaign cost and performance across apps with a validated GA4 property.</p></div>
+        <div><h1 className="page-title">Campaigns</h1><p className="mt-1.5 max-w-2xl text-sm text-secondary">Campaign cost and performance across apps with a validated GA4 property.</p></div>
       </div>
       {error && <div className="mb-4"><div role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">{error}<button className="ml-auto" onClick={() => setError("")} aria-label="Dismiss error"><X size={15} /></button></div></div>}
       {!googleConnected && <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3.5 py-3 text-sm text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/30 dark:text-indigo-200">Connect Google Analytics to query campaign performance.</div>}
@@ -231,17 +231,17 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
           <MetricCard label="Top Campaign" value={topCampaign?.campaign ?? "—"} note={topCampaign?.cost === null || topCampaign === undefined ? "Cost unavailable" : money.format(topCampaign.cost)} icon={TrendingUp} tone="amber" />
         </div>
         <div className={`mt-5 grid gap-5 xl:grid-cols-2 transition-opacity duration-200 ${loading ? "opacity-75" : "opacity-100"}`} aria-busy={loading}>
-          <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-primary">Cost by Campaign</h2><p className="mt-1 text-xs text-secondary">Top campaigns · {report.startDate} – {report.endDate}</p></div>
             {matchingCampaigns.length ? <div className="p-4"><LazyEChart style={{ height: Math.max(260, Math.min(12, matchingCampaigns.length) * 34 + 48) }} option={{ animationDurationUpdate: 350, grid: { left: 12, right: 24, top: 8, bottom: 8, containLabel: true }, tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (value: number | null) => value === null ? "—" : money.format(value), backgroundColor: dark ? "#172235" : "#ffffff", borderColor: dark ? "#36445c" : "#e2e8f0", textStyle: { color: dark ? "#e5eaf4" : "#172033" } }, xAxis: { type: "value", axisLabel: { color: dark ? "#9aa7bc" : "#94a3b8" }, splitLine: { lineStyle: { color: dark ? "#29364b" : "#f1f5f9" } } }, yAxis: { type: "category", inverse: true, data: matchingCampaigns.slice(0, 12).map((row) => row.campaign), axisLabel: { color: dark ? "#c1cad9" : "#475569", width: 150, overflow: "truncate" }, axisLine: { show: false }, axisTick: { show: false } }, series: [{ type: "bar", data: matchingCampaigns.slice(0, 12).map((row) => row.cost), barMaxWidth: 22, itemStyle: { borderRadius: [0, 5, 5, 0], color: dark ? "#827cf3" : "#615eea" } }] }} /></div> : <div className="p-5 text-sm text-muted">No matching campaigns for this filter.</div>}
           </section>
-          <section className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4"><div><h2 className="text-sm font-semibold text-primary">Campaign Cost Trend</h2><p className="mt-1 text-xs text-secondary">Daily performance for matching campaigns.</p></div><label className="sr-only" htmlFor="campaign-trend-metric">Trend metric</label><select id="campaign-trend-metric" className="field !w-auto !py-2 !text-xs" value={trendMetric} onChange={(event) => setTrendMetric(event.target.value as Metric)}><option value="cost">Cost</option><option value="clicks">Clicks</option><option value="impressions">Impressions</option></select></div>
             {trend.length ? <div className="p-4"><LazyEChart style={{ height: 300 }} option={trendOption} /></div> : <div className="p-5 text-sm text-muted">Trend not available for the selected campaigns and dates.</div>}
           </section>
         </div>
 
-        <section className="mt-5 overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+        <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
           <div className="flex flex-col gap-2 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold text-primary">Campaign performance</h2><p className="mt-1 text-xs text-secondary">{matchingCampaigns.length} matching campaigns · updated {fetchedAt ? new Date(fetchedAt).toLocaleTimeString() : "—"}</p></div></div>
           {!matchingCampaigns.length ? <div className="px-5 py-10 text-center"><h3 className="text-sm font-semibold text-primary">{report.campaigns.length ? "No campaigns match these filters" : "No campaign data available"}</h3><p className="mt-1 text-sm text-secondary">{report.campaigns.length ? "Clear the campaign filters or choose a different date range." : "Check that campaign data is available in the linked GA4 properties."}</p></div> : <>
             <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-xs">
