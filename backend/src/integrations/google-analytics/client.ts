@@ -1,6 +1,7 @@
 import { BetaAnalyticsDataClient, v1alpha } from "@google-analytics/data";
-import { JWT } from "google-auth-library";
+import { OAuth2Client, JWT } from "google-auth-library";
 import { config } from "../../config/env";
+import { prisma } from "../../config/prisma";
 
 let serviceAccountClient: JWT | null = null;
 
@@ -22,7 +23,7 @@ function getServiceAccountClient(): JWT {
   }
 
   if (!email || !privateKey) {
-    throw Object.assign(new Error("Configure GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY on the backend"), { status: 503 });
+    throw Object.assign(new Error("No Google Analytics credentials are configured. Connect the shared Google account or configure a service account."), { status: 503 });
   }
 
   serviceAccountClient = new JWT({
@@ -33,12 +34,33 @@ function getServiceAccountClient(): JWT {
   return serviceAccountClient;
 }
 
-/** All visitors use the company's shared, read-only GA4 service account. */
+async function getGoogleAuthClient(): Promise<OAuth2Client | JWT> {
+  if (config.GOOGLE_SERVICE_ACCOUNT_JSON || (config.GOOGLE_SERVICE_ACCOUNT_EMAIL && config.GOOGLE_PRIVATE_KEY)) {
+    return getServiceAccountClient();
+  }
+
+  const connection = await prisma.googleConnection.findUnique({
+    where: { profileId: "open-deploy-shared" },
+    select: { refreshToken: true },
+  });
+  if (!connection?.refreshToken) {
+    throw Object.assign(new Error("Google Analytics is not connected. Use Connect Google Analytics in the dashboard."), { status: 503 });
+  }
+  if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET) {
+    throw Object.assign(new Error("Google OAuth client credentials are missing from the backend environment."), { status: 503 });
+  }
+
+  const client = new OAuth2Client(config.GOOGLE_CLIENT_ID, config.GOOGLE_CLIENT_SECRET, config.GOOGLE_REDIRECT_URI);
+  client.setCredentials({ refresh_token: connection.refreshToken });
+  return client;
+}
+
+/** All visitors use the company's shared, read-only GA4 Google account. */
 export async function getAnalyticsClient(_profileId?: string): Promise<BetaAnalyticsDataClient> {
-  return new BetaAnalyticsDataClient({ authClient: getServiceAccountClient() });
+  return new BetaAnalyticsDataClient({ authClient: await getGoogleAuthClient() });
 }
 
 /** The funnel report lives in the v1alpha Data API. */
 export async function getFunnelClient(_profileId?: string): Promise<v1alpha.AlphaAnalyticsDataClient> {
-  return new v1alpha.AlphaAnalyticsDataClient({ authClient: getServiceAccountClient() });
+  return new v1alpha.AlphaAnalyticsDataClient({ authClient: await getGoogleAuthClient() });
 }
