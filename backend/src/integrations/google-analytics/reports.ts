@@ -75,7 +75,7 @@ export async function getEventPopulations(
   appVersion?: string,
   country?: string,
 ): Promise<Map<string, EventPopulation>> {
-  const cacheKey = `populations:${propertyId}:${eventNames.join(",")}:${startDate}:${endDate}:${appVersion ?? ""}:${country ?? ""}`;
+  const cacheKey = `populations-v2:${propertyId}:${eventNames.join(",")}:${startDate}:${endDate}:${appVersion ?? ""}:${country ?? ""}`;
   const cached = memoryCache.get<Array<[string, EventPopulation]>>(cacheKey);
   if (cached) {
     return new Map(cached);
@@ -85,7 +85,7 @@ export async function getEventPopulations(
     property: `properties/${propertyId}`,
     dateRanges: [{ startDate, endDate }],
     dimensions: [{ name: "eventName" }],
-    metrics: [{ name: "activeUsers" }, { name: "eventCount" }],
+    metrics: [{ name: "totalUsers" }, { name: "eventCount" }],
     dimensionFilter: reportFilters(appVersion, country),
     limit: 10000,
   });

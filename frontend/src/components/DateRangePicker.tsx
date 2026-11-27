@@ -12,16 +12,17 @@ const WEEK = ["S", "M", "T", "W", "T", "F", "S"];
 
 function presets(max: string) {
   const t = parse(max);
+  const y = addDays(t, -1);
   const monthStart = new Date(t.getFullYear(), t.getMonth(), 1);
   const lastMonthStart = new Date(t.getFullYear(), t.getMonth() - 1, 1);
   const lastMonthEnd = new Date(t.getFullYear(), t.getMonth(), 0);
   return [
     { label: "Today", range: [iso(t), iso(t)] },
     { label: "Yesterday", range: [iso(addDays(t, -1)), iso(addDays(t, -1))] },
-    { label: "Last 7 days", range: [iso(addDays(t, -6)), iso(t)] },
-    { label: "Last 14 days", range: [iso(addDays(t, -13)), iso(t)] },
-    { label: "Last 30 days", range: [iso(addDays(t, -29)), iso(t)] },
-    { label: "Last 90 days", range: [iso(addDays(t, -89)), iso(t)] },
+    { label: "Last 7 days", range: [iso(addDays(y, -6)), iso(y)] },
+    { label: "Last 14 days", range: [iso(addDays(y, -13)), iso(y)] },
+    { label: "Last 30 days", range: [iso(addDays(y, -29)), iso(y)] },
+    { label: "Last 90 days", range: [iso(addDays(y, -89)), iso(y)] },
     { label: "This month", range: [iso(monthStart), iso(t)] },
     { label: "Last month", range: [iso(lastMonthStart), iso(lastMonthEnd)] },
   ] as const;

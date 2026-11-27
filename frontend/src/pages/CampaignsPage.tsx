@@ -32,8 +32,8 @@ function currencyFormatter(currency: string | null): Intl.NumberFormat {
 }
 
 export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
-  const [startDate, setStartDate] = useState(daysAgo(29));
-  const [endDate, setEndDate] = useState(today());
+  const [startDate, setStartDate] = useState(daysAgo(30));
+  const [endDate, setEndDate] = useState(daysAgo(1));
   const [, setPreset] = useState("30d");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");

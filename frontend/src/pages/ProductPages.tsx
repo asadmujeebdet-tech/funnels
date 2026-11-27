@@ -143,13 +143,6 @@ function MetricCard({ label, value, note, icon: Icon, tone }: {
   return <section className="rounded-2xl border border-line bg-surface p-4 shadow-card"><div className="flex items-center gap-2.5"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tones[tone]}`}><Icon size={16} aria-hidden="true" /></span><p className="truncate text-xs font-medium text-secondary">{label}</p></div><p className="mt-3 truncate text-2xl font-semibold tabular-nums tracking-tight text-primary">{value}</p>{note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}</section>;
 }
 
-function rangeStart(preset: string): string {
-  if (preset === "today") return today();
-  if (preset === "yesterday") return daysAgo(1);
-  if (preset === "7d") return daysAgo(6);
-  if (preset === "90d") return daysAgo(89);
-  return daysAgo(29);
-}
 const EMPTY_METRICS: OverviewMetrics = {
   activeUsers: null,
   newUsers: null,
@@ -169,8 +162,8 @@ export function OverviewPage(props: Props) {
   const [appId, setAppId] = useState(searchParams.get("app") ?? "");
   const [version, setVersion] = useState("");
   const [country, setCountry] = useState("");
-  const [startDate, setStartDate] = useState(rangeStart("30d"));
-  const [endDate, setEndDate] = useState(today());
+  const [startDate, setStartDate] = useState(daysAgo(30));
+  const [endDate, setEndDate] = useState(daysAgo(1));
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
