@@ -50,8 +50,8 @@ export const services = {
     (await api.get<OverviewData>(`/apps/${appId}/ga4/overview`, {
       params: { startDate, endDate, ...(appVersion ? { appVersion } : {}), ...(country ? { country } : {}) },
     })).data,
-  campaigns: async (startDate: string, endDate: string) =>
-    (await api.get<CampaignCostReport>("/ga4/campaigns", { params: { startDate, endDate } })).data,
+  campaigns: async (startDate: string, endDate: string, appId = "") =>
+    (await api.get<CampaignCostReport>(appId ? `/apps/${appId}/ga4/campaigns` : "/ga4/campaigns", { params: { startDate, endDate } })).data,
   sync: async (appId: string) => (await api.post<SyncJob>(`/apps/${appId}/sync`)).data,
   saveReport: async (appId: string, name: string, config: Record<string, unknown>) =>
     (await api.post(`/apps/${appId}/reports`, { name, config })).data,
