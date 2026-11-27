@@ -6,7 +6,7 @@ import { LazyEChart } from "../components/LazyEChart";
 import { services } from "../services/api";
 import { daysAgo, messageFrom, today } from "../utils/dates";
 import { useRegisterRefresh, useWorkspace } from "../state/WorkspaceContext";
-import type { CampaignCostReport, Profile } from "../types";
+import type { Application, CampaignCostReport, Profile } from "../types";
 
 type Props = { profile: Profile; googleConnected: boolean; onLogout: () => void };
 type CampaignRow = CampaignCostReport["campaigns"][number];
@@ -38,6 +38,8 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState("");
+  const [apps, setApps] = useState<Application[]>([]);
+  const [selectedAppId, setSelectedAppId] = useState("");
   const [report, setReport] = useState<CampaignCostReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -60,7 +62,7 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     }
     setLoading(true);
     try {
-      const response = await services.campaigns(startDate, endDate);
+      const response = await services.campaigns(startDate, endDate, selectedAppId);
       if (requestId !== requestSequence.current) return;
       setReport(response);
       setFetchedAt(new Date().toISOString());
@@ -72,8 +74,9 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     } finally {
       if (requestId === requestSequence.current) setLoading(false);
     }
-  }, [googleConnected, startDate, endDate]);
+  }, [googleConnected, startDate, endDate, selectedAppId]);
   useRegisterRefresh(() => loadCampaigns(true), [loadCampaigns]);
+  useEffect(() => { void services.apps().then(setApps).catch((loadError) => setError(messageFrom(loadError))); }, []);
   useEffect(() => { void loadCampaigns(); }, [loadCampaigns]);
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query), 250);
@@ -114,6 +117,12 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     return [...byDate.values()].map((point) => ({ ...point, cost: point.cost ?? null, clicks: point.clicks ?? null, impressions: point.impressions ?? null })).sort((left, right) => left.date.localeCompare(right.date));
   }, [matchingCampaigns]);
 
+  const availableCosts = matchingCampaigns.map((campaign) => campaign.cost).filter((cost): cost is number => cost !== null);
+  const filteredTotalCost = availableCosts.length === matchingCampaigns.length && availableCosts.length > 0
+    ? availableCosts.reduce((sum, cost) => sum + cost, 0)
+    : null;
+  const topCampaign = matchingCampaigns[0];
+
   const columns = useMemo<ColumnDef<CampaignRow>[]>(() => [
     { accessorKey: "campaign", header: "Campaign Name", cell: (info) => <span className="font-medium text-primary">{info.getValue<string>()}</span> },
     { accessorKey: "cost", header: "Cost", cell: (info) => { const value = info.getValue<number | null>(); return <span className="font-semibold tabular-nums text-primary">{value === null ? "—" : money.format(value)}</span>; } },
@@ -124,13 +133,13 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     {
       id: "costShare",
       header: "Cost Share",
-      accessorFn: (row) => report?.totalCost != null && report.totalCost > 0 && row.cost !== null ? row.cost / report.totalCost : null,
+      accessorFn: (row) => filteredTotalCost != null && filteredTotalCost > 0 && row.cost !== null ? row.cost / filteredTotalCost : null,
       cell: (info) => {
         const share = info.getValue<number | null>();
         return <div className="flex min-w-28 items-center gap-2"><div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-soft"><div className="h-full rounded-full bg-indigo-500 transition-all duration-300" style={{ width: `${Math.min((share ?? 0) * 100, 100)}%` }} /></div><span className="w-11 text-right tabular-nums text-muted">{share === null ? "—" : `${(share * 100).toFixed(1)}%`}</span></div>;
       },
     },
-  ], [money, report?.totalCost]);
+  ], [money, filteredTotalCost]);
 
   const table = useReactTable({
     data: matchingCampaigns,
@@ -143,7 +152,6 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  const topCampaign = report?.campaigns[0];
   const trendOption = useMemo(() => ({
     color: [dark ? "#aaa6ff" : "#615eea"],
     animationDurationUpdate: 350,
@@ -165,7 +173,8 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
       <div className="sticky top-[64px] z-20 -mx-4 px-4 py-2 sm:-mx-7 sm:px-7">
         <section className="rounded-2xl bg-surface/95 p-3 shadow-md backdrop-blur">
           <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Filter size={14} />Campaign filters</div>{loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}</div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div><label className="label" htmlFor="campaign-app-filter">Application</label><select id="campaign-app-filter" className="field" value={selectedAppId} onChange={(event) => { setSelectedAppId(event.target.value); setSelectedCampaign(""); setQuery(""); setDebouncedQuery(""); setPagination((current) => ({ ...current, pageIndex: 0 })); }}><option value="">All applications</option>{apps.filter((app) => app.ga4PropertyId).map((app) => <option key={app.id} value={app.id}>{app.name}</option>)}</select></div>
             <div ref={campaignFilterRef} className="relative">
               <label className="label" htmlFor="campaign-name-filter">Campaign Name</label>
               <button id="campaign-name-filter" type="button" className="field flex items-center justify-between gap-2 text-left" aria-haspopup="listbox" aria-expanded={campaignMenuOpen} aria-controls="campaign-name-options" onClick={() => setCampaignMenuOpen((open) => !open)}>
@@ -191,9 +200,9 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
 
       {loading && !report ? <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div className="skeleton h-28" key={index} />)}</div> : report && <>
         <div className={`grid grid-cols-2 gap-3 xl:grid-cols-4 ${loading ? "opacity-75" : "opacity-100"} transition-opacity duration-200`} aria-busy={loading}>
-          <MetricCard label="Total Cost" value={report.totalCost === null ? "—" : money.format(report.totalCost)} note={report.currency ?? "Currency unavailable"} icon={DollarSign} tone="blue" />
-          <MetricCard label="Total Campaigns" value={report.campaigns.length.toLocaleString()} note="Unique campaign names" icon={Megaphone} tone="violet" />
-          <MetricCard label="Average Cost" value={report.totalCost === null ? "—" : money.format(report.campaigns.length ? report.totalCost / report.campaigns.length : 0)} note="Per campaign" icon={Activity} tone="green" />
+          <MetricCard label="Total Cost" value={filteredTotalCost === null ? "—" : money.format(filteredTotalCost)} note={report.currency ?? "Currency unavailable"} icon={DollarSign} tone="blue" />
+          <MetricCard label="Total Campaigns" value={matchingCampaigns.length.toLocaleString()} note="Unique campaign names" icon={Megaphone} tone="violet" />
+          <MetricCard label="Average Cost" value={filteredTotalCost === null ? "—" : money.format(matchingCampaigns.length ? filteredTotalCost / matchingCampaigns.length : 0)} note="Per campaign" icon={Activity} tone="green" />
           <MetricCard label="Top Campaign" value={topCampaign?.campaign ?? "—"} note={topCampaign?.cost === null || topCampaign === undefined ? "Cost unavailable" : money.format(topCampaign.cost)} icon={TrendingUp} tone="amber" />
         </div>
         <div className={`mt-5 grid gap-5 xl:grid-cols-2 transition-opacity duration-200 ${loading ? "opacity-75" : "opacity-100"}`} aria-busy={loading}>
