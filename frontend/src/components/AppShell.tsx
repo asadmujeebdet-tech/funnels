@@ -28,7 +28,7 @@ function initials(profile: Profile) {
   return (profile.name || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]!.toUpperCase()).join("");
 }
 
-export function AppShell({ profile, children }: Props) {
+export function AppShell({ profile, googleConnected = false, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
@@ -74,6 +74,9 @@ export function AppShell({ profile, children }: Props) {
             <div className="min-w-0"><p className="truncate text-sm font-semibold text-primary">{title}</p><p className="hidden text-[11px] text-muted sm:block">Home <span className="px-1.5">/</span> {title}</p></div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {googleConnected
+              ? <span className="hidden items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 sm:inline-flex"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />GA4 Connected</span>
+              : <a href="/api/v1/auth/google" className="inline-flex items-center rounded-lg bg-indigo-600 px-2.5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 sm:px-3.5">Connect Google Analytics</a>}
             <button onClick={() => void refresh()} disabled={refreshing} className="button-secondary !px-2.5 !py-2 text-xs sm:!px-3.5" aria-label="Refresh data">
               <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /><span className="hidden sm:inline">{refreshing ? "Refreshing…" : "Refresh Data"}</span>
             </button>
