@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-import { config } from "../config/env";
-import { signValue, verifyValue } from "../utils/crypto";
 
-const SESSION_MS = 30 * 24 * 60 * 60 * 1000;
+/**
+ * Open deployment mode: every visitor shares one workspace identity.
+ * This is intentionally not user authentication. Anyone with the URL can use
+ * the dashboard, so do not expose this deployment to untrusted audiences.
+ */
+export const SHARED_PROFILE_ID = "open-deploy-shared";
 
 declare global {
   namespace Express {
@@ -12,30 +15,7 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const signed = req.cookies?.session as string | undefined;
-  const payload = signed ? verifyValue(signed) : null;
-  if (!payload) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-
-  const [profileId, expiresAt] = payload.split(":");
-  if (!profileId || !expiresAt || Number(expiresAt) <= Date.now()) {
-    res.status(401).json({ error: "Authentication required" });
-    return;
-  }
-
-  req.profileId = profileId;
-  // Sliding session: renew the cookie once less than 15 days remain so active users stay signed in.
-  if (Number(expiresAt) - Date.now() < SESSION_MS / 2) {
-    res.cookie("session", signValue(`${profileId}:${Date.now() + SESSION_MS}`), {
-      httpOnly: true,
-      secure: config.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_MS,
-    });
-  }
+export function requireAuth(_req: Request, _res: Response, next: NextFunction): void {
+  _req.profileId = SHARED_PROFILE_ID;
   next();
 }
