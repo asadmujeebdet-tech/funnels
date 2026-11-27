@@ -37,7 +37,10 @@ GOOGLE_CLIENT_ID=YOUR_OAUTH_CLIENT_ID
 GOOGLE_CLIENT_SECRET=YOUR_OAUTH_CLIENT_SECRET
 GOOGLE_REDIRECT_URI=https://funnels-6ncp.onrender.com/api/v1/auth/google/callback
 GOOGLE_OAUTH_SETUP_SECRET=GENERATE_A_LONG_RANDOM_SECRET
+TOKEN_ENCRYPTION_KEY=GENERATE_ANOTHER_LONG_RANDOM_SECRET
 ```
+
+Generate each random secret separately, for example with `openssl rand -hex 32`. Keep both secrets private. `TOKEN_ENCRYPTION_KEY` encrypts the Google refresh token before it is stored in PostgreSQL; do not change it after connecting, or the stored token cannot be decrypted.
 
 Do not set `VITE_API_BASE_URL` for this single-service deployment. The frontend calls the API on the same Render origin.
 
@@ -46,7 +49,7 @@ Do not set `VITE_API_BASE_URL` for this single-service deployment. The frontend 
 1. Open Google Cloud project `funnels-515914`.
 2. Enable **Google Analytics Data API**.
 3. Open **Google Auth Platform → Branding** and configure the consent screen.
-4. Under **Audience**, add the Google account that owns or can access the GA4 properties as a test user if the app is in Testing mode. For a long-lived production refresh token, publish the OAuth app as appropriate for your organization's policy.
+4. Under **Audience**, add the Google account that owns or can access the GA4 properties as a test user if the app is in Testing mode. For a long-lived production refresh token, publish the OAuth app as appropriate for your organization's policy. Google OAuth apps left in Testing can issue refresh tokens that expire after seven days.
 5. Open **Clients** and use a client of type **Web application**.
 6. Add this exact Authorized redirect URI:
    `https://funnels-6ncp.onrender.com/api/v1/auth/google/callback`
@@ -61,7 +64,7 @@ The app requests the `analytics.readonly` scope only. It does not require a serv
 2. Open `https://funnels-6ncp.onrender.com/api/v1/auth/google`.
 3. Enter the value of `GOOGLE_OAUTH_SETUP_SECRET` when prompted.
 4. Sign in to the Google account that has Viewer access to your GA4 properties and approve read-only Analytics access.
-5. The callback saves the refresh token in the existing `google_connections` table in PostgreSQL. Tokens are not written to the browser or GitHub.
+5. The callback encrypts the refresh token and saves it in the existing `google_connections` table in PostgreSQL. Tokens are not written to the browser or GitHub.
 6. Return to Funnels. The header should show **GA4 Connected**.
 
 The setup secret is required to start the OAuth connection so an ordinary visitor to the public dashboard cannot replace the shared Google account. Keep it private. If you need to reconnect another Google account, rotate the setup secret in Render and repeat the process.
