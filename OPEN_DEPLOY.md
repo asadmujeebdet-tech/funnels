@@ -12,7 +12,7 @@ Create one **Web Service** connected to this repository and select branch `open-
 - Build Command: `npm run install:all && npm run build`
 - Start Command: `npm start`
 
-The build installs dependencies for the root, backend, and frontend, builds the Vite frontend first, and then compiles the backend. Express serves `frontend/dist` and all `/api/v1` routes from the same Render URL.
+The build uses `npm ci --include=dev` independently in the root, backend, and frontend so TypeScript, Vite, Prisma CLI, and other build-time tools are installed even when Render runs with `NODE_ENV=production`. It then builds the Vite frontend first and compiles the backend. Express serves `frontend/dist` and all `/api/v1` routes from the same Render URL.
 
 ## Environment variables
 
@@ -30,6 +30,8 @@ SYNC_TIMEZONE=Asia/Karachi
 ```
 
 You can use `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY` instead of `GOOGLE_SERVICE_ACCOUNT_JSON`.
+
+**GA4 authentication note:** this branch currently expects service-account credentials for server-side GA4 access. If your Google Cloud organization blocks service-account key creation, the app can still be deployed, but GA4 requests will not authenticate until the backend is updated to use OAuth refresh-token authentication or Workload Identity Federation.
 
 Do not commit a real `.env` file or service-account JSON/private key to GitHub. Keep secrets in Render environment variables.
 
