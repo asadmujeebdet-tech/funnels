@@ -36,8 +36,8 @@ import type { Application, Feature, OverviewData, OverviewMetrics, Profile } fro
 
 type Props = { profile: Profile; googleConnected: boolean; onLogout: () => void };
 
-function PageTitle({ title, subtitle, action }: { title: string; subtitle: string; action?: ReactNode }) {
-  return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="page-title">{title}</h1><p className="mt-1.5 max-w-2xl text-sm text-secondary">{subtitle}</p></div>{action}</div>;
+function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
+  return <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="page-title">{title}</h1>{subtitle && <p className="mt-1.5 max-w-2xl text-sm text-secondary">{subtitle}</p>}</div>{action}</div>;
 }
 
 function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -97,8 +97,8 @@ function ApplicationPicker({ apps, value, onChange, id, disabled = false }: { ap
     return () => document.removeEventListener("pointerdown", closeOutside);
   }, [open]);
   return <div ref={rootRef} className="relative">
-    <button id={id} type="button" className="field flex items-center justify-between gap-2 text-left disabled:opacity-60" role="combobox" aria-expanded={open} aria-haspopup="listbox" aria-controls={`${id}-options`} disabled={disabled} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
-      {selected ? <span className="flex min-w-0 items-center gap-2"><IconTile app={selected} size="sm" /><span className="truncate text-primary">{selected.name}</span></span> : <span className="text-muted">Select an application</span>}
+    <button id={id} type="button" className="field flex h-[42px] items-center justify-between gap-2 !py-0 text-left disabled:opacity-60" role="combobox" aria-expanded={open} aria-haspopup="listbox" aria-controls={`${id}-options`} disabled={disabled} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
+      {selected ? <span className="flex min-w-0 items-center gap-2"><span className="[&>*]:!h-7 [&>*]:!w-7 [&>*]:!rounded-md"><IconTile app={selected} size="sm" /></span><span className="truncate text-primary">{selected.name}</span></span> : <span className="text-muted">Select an application</span>}
       <ChevronDown size={15} className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
     </button>
     {open && <div id={`${id}-options`} role="listbox" aria-label="Applications" className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-xl">
@@ -226,12 +226,11 @@ export function OverviewPage(props: Props) {
       {appsError && <div className="mb-4"><Alert>{appsError}</Alert></div>}
       {error && <div className="mb-4"><Alert><CircleAlert size={16} />{error}</Alert></div>}
       {!apps.length ? <Card><Empty title="Add your first app" description="Manage Apps is where you connect an application and its GA4 property." action={<Link className="button-primary" to="/apps"><Plus size={15} /> Manage Apps</Link>} /></Card> : <>
-        <PageTitle title="Overview" subtitle="Engagement, retention and funnel performance for the selected application." />
         <div className="sticky top-[64px] z-40 -mx-4 bg-app px-4 py-2 sm:-mx-7 sm:px-7">
           <Card className="border-0 bg-surface/95 p-3 shadow-md backdrop-blur">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               {app && <AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} />}
-              <div className="grid flex-1 gap-2.5 sm:grid-cols-2 lg:ml-auto lg:max-w-2xl">
+              <div className="grid flex-1 grid-cols-2 items-end gap-2.5 lg:ml-auto lg:max-w-2xl">
                 <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
                 <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
               </div>
@@ -280,7 +279,7 @@ const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, 
           <td className="px-4 py-3 font-mono text-[13px] font-medium text-primary">{event.eventName}</td>
           <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary"><span className="inline-block min-w-20 rounded px-2 py-1" style={{ backgroundColor: `color-mix(in srgb, #6366f1 ${Math.round(event.userIntensity * 26)}%, transparent)` }}>{event.activeUsers.toLocaleString()}</span></td>
           <td className="px-4 py-3 text-right text-sm font-medium tabular-nums text-primary">{event.eventCount.toLocaleString()}</td>
-          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary"><span className="inline-block min-w-16 rounded px-2 py-1" style={{ backgroundColor: event.drop === null ? "transparent" : `color-mix(in srgb, ${event.dropColor} ${Math.round(event.dropIntensity * 32)}%, transparent)` }}>{event.drop === null ? "—" : `${event.drop.toFixed(1)}%`}</span></td>
+          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary"><span className="inline-block min-w-16 rounded px-2 py-1" style={{ backgroundColor: event.drop === null ? "transparent" : `color-mix(in srgb, ${event.dropColor} ${Math.round(event.dropIntensity * 32)}%, transparent)` }}>{event.drop === null ? "—" : event.drop > 0 ? <span className="font-bold text-rose-600 dark:text-rose-400">{`-${event.drop.toFixed(1)}%`}</span> : `${event.drop.toFixed(1)}%`}</span></td>
         </tr>)}</tbody>
       </table></div>}
     </Card>
@@ -399,13 +398,13 @@ export function FunnelsPage(props: Props) {
 
   return (
     <AppShell profile={props.profile} googleConnected={props.googleConnected} onLogout={props.onLogout}>
-      <PageTitle title="Create Funnels" subtitle="Define ordered GA4 events for each application. Funnels remain associated with their app." action={<button className="button-primary" onClick={() => { closeEditor(); document.getElementById("funnel-editor")?.scrollIntoView({ behavior: "smooth" }); }}><Plus size={15} /> Create Funnel</button>} />
+      <PageTitle title="Create Funnels" action={<button className="button-primary" onClick={() => { closeEditor(); document.getElementById("funnel-editor")?.scrollIntoView({ behavior: "smooth" }); }}><Plus size={15} /> Create Funnel</button>} />
       {error && <div className="mb-4"><Alert>{error}<button className="ml-auto" onClick={() => setError("")} aria-label="Dismiss"><X size={15} /></button></Alert></div>}
       <div id="funnel-editor" className="grid gap-5">
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-start justify-between"><div><h2 className="text-sm font-semibold text-primary">{editing ? "Edit funnel" : "New funnel"}</h2><p className="mt-1 text-xs text-secondary">Add one event name per line; order is preserved.</p></div>{editing && <button className="button-secondary !px-2.5 !py-2 !text-xs" onClick={closeEditor}><X size={14} />Cancel</button>}</div>
           <form onSubmit={(event) => void saveFunnel(event)} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-2 items-end gap-4">
               <div><label className="label" htmlFor="funnel-app">Application</label><ApplicationPicker id="funnel-app" apps={apps} value={appId} disabled={Boolean(editing)} onChange={(value) => { setAppId(value); setKnownEvents(null); setValidated(false); }} /></div>
               <div><label className="label" htmlFor="funnel-name">Funnel name</label><input id="funnel-name" className="field" maxLength={120} required value={name} onChange={(event) => setName(event.target.value)} placeholder="Onboarding" /></div>
             </div>
