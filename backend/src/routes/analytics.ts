@@ -125,7 +125,7 @@ analyticsRouter.get("/apps/:appId/ga4/overview", async (req, res, next) => {
     const features = await prisma.feature.findMany({
       where: { appsId: app.id },
       include: { events: { orderBy: { position: "asc" } } },
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "asc" },
     });
     const eventNames = [...new Set(features.flatMap((feature) => feature.events.map((event) => event.eventName)))];
     const funnelClient = await getFunnelClient(req.profileId!);

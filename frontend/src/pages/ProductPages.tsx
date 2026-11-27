@@ -167,7 +167,12 @@ export function OverviewPage(props: Props) {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(sessionStorage.getItem("journey-expanded-funnels") ?? "{}") as Record<string, boolean>; } catch { return {}; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("journey-expanded-funnels", JSON.stringify(expanded)); } catch { /* storage unavailable */ }
+  }, [expanded]);
   const requestSequence = useRef(0);
   const navigate = useNavigate();
   const app = apps.find((item) => item.id === appId);
@@ -225,7 +230,7 @@ export function OverviewPage(props: Props) {
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               {app && <AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} />}
               <div className="grid flex-1 grid-cols-1 items-end gap-2.5 sm:grid-cols-3 lg:ml-auto lg:max-w-3xl">
-                <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
+                <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); }} /></div>
                 <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
                 <div><label className="label">Date range</label><DateRangePicker start={startDate} end={endDate} max={today()} onChange={(from, to) => { setStartDate(from); setEndDate(to); }} /></div>
               </div>
@@ -240,7 +245,7 @@ export function OverviewPage(props: Props) {
         </div>
         <div className="mb-3 mt-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-primary">User Journey</h2><p className="mt-1 text-xs text-secondary">Event-level engagement across this application's configured funnels.{data?.timeZone ? ` Dates follow the GA4 property time zone (${data.timeZone}).` : ""}</p></div><span className="text-xs text-muted">{data?.funnels.length ?? 0} funnels</span></div>
         {loading && !data ? <Card><Skeleton rows={5} /></Card> : !data?.funnels.length ? <Card><Empty title={`No funnels created for ${app?.name ?? "this application"}.`} description="Create your first funnel to start analyzing user journeys." action={<Link className="button-primary" to={`/funnels?app=${encodeURIComponent(appId)}`}><Plus size={15} /> Create Funnel</Link>} /></Card> : <div className="space-y-4">
-          {data.funnels.map((funnel, index) => <FunnelSection key={funnel.id} app={app} funnel={funnel} expanded={expanded[funnel.id] ?? index === 0} onToggle={() => setExpanded((current) => ({ ...current, [funnel.id]: !(current[funnel.id] ?? index === 0) }))} onEdit={() => navigate(`/funnels?app=${encodeURIComponent(appId)}&edit=${encodeURIComponent(funnel.id)}`)} />)}
+          {data.funnels.map((funnel) => <FunnelSection key={funnel.id} app={app} funnel={funnel} expanded={expanded[funnel.id] ?? true} onToggle={() => setExpanded((current) => ({ ...current, [funnel.id]: !(current[funnel.id] ?? true) }))} onEdit={() => navigate(`/funnels?app=${encodeURIComponent(appId)}&edit=${encodeURIComponent(funnel.id)}`)} />)}
         </div>}
         <p className="mt-4 text-xs leading-5 text-muted">Event population comparison: users are reported independently for each event. This does not prove that the same users completed events sequentially.</p>
       </>}

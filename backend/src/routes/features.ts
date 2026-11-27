@@ -13,7 +13,7 @@ featuresRouter.get("/apps/:appId/features", async (req, res, next) => {
     const features = await prisma.feature.findMany({
       where: { appsId: req.params.appId },
       include: { events: { orderBy: { position: "asc" } } },
-      orderBy: { name: "asc" },
+      orderBy: { createdAt: "asc" },
     });
     res.json(features);
   } catch (error) {
