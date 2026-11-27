@@ -29,6 +29,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { AppShell } from "../components/AppShell";
+import { DateRangePicker } from "../components/DateRangePicker";
 import { services, type ApplicationInput } from "../services/api";
 import { daysAgo, messageFrom, today } from "../utils/dates";
 import { useRegisterRefresh, useWorkspace } from "../state/WorkspaceContext";
@@ -168,8 +169,8 @@ export function OverviewPage(props: Props) {
   const [appId, setAppId] = useState(searchParams.get("app") ?? "");
   const [version, setVersion] = useState("");
   const [country, setCountry] = useState("");
-  const [startDate] = useState(rangeStart("30d"));
-  const [endDate] = useState(today());
+  const [startDate, setStartDate] = useState(rangeStart("30d"));
+  const [endDate, setEndDate] = useState(today());
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -230,9 +231,10 @@ export function OverviewPage(props: Props) {
           <Card className="border-0 bg-surface/95 p-3 shadow-md backdrop-blur">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               {app && <AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} />}
-              <div className="grid flex-1 grid-cols-2 items-end gap-2.5 lg:ml-auto lg:max-w-2xl">
+              <div className="grid flex-1 grid-cols-1 items-end gap-2.5 sm:grid-cols-3 lg:ml-auto lg:max-w-3xl">
                 <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
                 <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+                <div><label className="label">Date range</label><DateRangePicker start={startDate} end={endDate} max={today()} onChange={(from, to) => { setStartDate(from); setEndDate(to); }} /></div>
               </div>
               {loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}
             </div>
