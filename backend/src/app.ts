@@ -28,9 +28,9 @@ app.use("/api/v1", featuresRouter);
 app.use("/api/v1", analyticsRouter);
 
 // In the single-service Render deployment, Express serves the Vite build.
-// Render starts the service from the repository root, so the frontend build
-// is available at frontend/dist relative to process.cwd().
-const frontendDist = resolve(process.cwd(), "frontend/dist");
+// npm starts the backend script from the backend package directory, so the
+// frontend build is one level up at ../frontend/dist.
+const frontendDist = resolve(process.cwd(), "../frontend/dist");
 app.use(express.static(frontendDist));
 app.get("*", (req, res, next) => {
   if (req.path.startsWith("/api/")) {
