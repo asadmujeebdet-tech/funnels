@@ -287,6 +287,8 @@ export type OverviewMetrics = {
   engagementRate: number | null;
   userEngagementDuration: number | null;
   sessionsPerActiveUser: number | null;
+  engagedSessionsPerActiveUser: number | null;
+  averageEngagementTimePerSession: number | null;
 };
 
 export async function getOverviewMetrics(
@@ -304,6 +306,8 @@ export async function getOverviewMetrics(
     "engagementRate",
     "userEngagementDuration",
     "sessionsPerActiveUser",
+    "engagedSessions",
+    "sessions",
   ];
   const metrics: OverviewMetrics = {
     activeUsers: null,
@@ -312,8 +316,11 @@ export async function getOverviewMetrics(
     engagementRate: null,
     userEngagementDuration: null,
     sessionsPerActiveUser: null,
+    engagedSessionsPerActiveUser: null,
+    averageEngagementTimePerSession: null,
   };
-  const cacheKey = `overview-metrics:${propertyId}:${startDate}:${endDate}:${appVersion ?? ""}:${country ?? ""}`;
+  const rawMetrics: Record<string, number | null> = {};
+  const cacheKey = `overview-metrics:v2:${propertyId}:${startDate}:${endDate}:${appVersion ?? ""}:${country ?? ""}`;
   const cached = memoryCache.get<OverviewMetrics>(cacheKey);
   if (cached) {
     return cached;
@@ -326,7 +333,7 @@ export async function getOverviewMetrics(
       dimensionFilter: reportFilters(appVersion, country),
     });
     metricNames.forEach((name, index) => {
-      metrics[name as keyof OverviewMetrics] = metricNumber(report.rows?.[0]?.metricValues?.[index]?.value);
+      rawMetrics[name] = metricNumber(report.rows?.[0]?.metricValues?.[index]?.value);
     });
   } catch {
     // Some properties do not expose mobile-app-only metrics. Query each metric separately
@@ -345,9 +352,28 @@ export async function getOverviewMetrics(
       }
     }));
     metricNames.forEach((name, index) => {
-      metrics[name as keyof OverviewMetrics] = results[index];
+      rawMetrics[name] = results[index];
     });
   }
+
+  metrics.activeUsers = rawMetrics.activeUsers ?? null;
+  metrics.newUsers = rawMetrics.newUsers ?? null;
+  metrics.crashAffectedUsers = rawMetrics.crashAffectedUsers ?? null;
+  metrics.engagementRate = rawMetrics.engagementRate ?? null;
+  metrics.userEngagementDuration = rawMetrics.userEngagementDuration ?? null;
+  metrics.sessionsPerActiveUser = rawMetrics.sessionsPerActiveUser ?? null;
+  const activeUsers = metrics.activeUsers;
+  const sessions = rawMetrics.sessions;
+  const engagedSessions = rawMetrics.engagedSessions;
+  metrics.engagedSessionsPerActiveUser =
+    activeUsers !== null && activeUsers > 0 && engagedSessions !== null
+      ? engagedSessions / activeUsers
+      : null;
+  metrics.averageEngagementTimePerSession =
+    sessions !== null && sessions > 0 && metrics.userEngagementDuration !== null
+      ? metrics.userEngagementDuration / sessions
+      : null;
+
   memoryCache.set(cacheKey, metrics, config.GA4_CACHE_TTL);
   return metrics;
 }

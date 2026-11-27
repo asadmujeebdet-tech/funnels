@@ -53,6 +53,8 @@ export type OverviewMetrics = {
   engagementRate: number | null;
   userEngagementDuration: number | null;
   sessionsPerActiveUser: number | null;
+  engagedSessionsPerActiveUser: number | null;
+  averageEngagementTimePerSession: number | null;
 };
 export type OverviewData = {
   metrics: OverviewMetrics;
