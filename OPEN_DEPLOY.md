@@ -12,40 +12,70 @@ Create one **Web Service** connected to this repository and select branch `open-
 - Build Command: `npm run install:all && npm run build`
 - Start Command: `npm start`
 
-The build uses `npm ci --include=dev` independently in the root, backend, and frontend so TypeScript, Vite, Prisma CLI, and other build-time tools are installed even when Render runs with `NODE_ENV=production`. It then builds the Vite frontend first and compiles the backend. Express serves `frontend/dist` and all `/api/v1` routes from the same Render URL.
+The build installs dependencies independently in the root, backend, and frontend, then builds the Vite frontend and compiles the backend. Express serves `frontend/dist` and all `/api/v1` routes from the same Render URL.
 
-## Environment variables
+## Render environment variables
 
-Add these in the single Render Web Service's Environment tab:
+Keep the existing PostgreSQL connection string so existing apps, funnels, reports, and sync history are preserved.
+
+Required/general:
 
 ```env
 NODE_ENV=production
 PORT=10000
 DATABASE_URL=YOUR_EXISTING_POSTGRES_CONNECTION_STRING
-FRONTEND_URL=https://YOUR-ONE-SERVICE.onrender.com
-BACKEND_URL=https://YOUR-ONE-SERVICE.onrender.com
-GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account","project_id":"...","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n","client_email":"...","client_id":"...","token_uri":"https://oauth2.googleapis.com/token"}
+FRONTEND_URL=https://funnels-6ncp.onrender.com
+BACKEND_URL=https://funnels-6ncp.onrender.com
 SYNC_ENABLED=false
 SYNC_TIMEZONE=Asia/Karachi
 ```
 
-You can use `GOOGLE_SERVICE_ACCOUNT_EMAIL` and `GOOGLE_PRIVATE_KEY` instead of `GOOGLE_SERVICE_ACCOUNT_JSON`.
+Google OAuth (use your existing Google OAuth **Web application** client):
 
-**GA4 authentication note:** this branch currently expects service-account credentials for server-side GA4 access. If your Google Cloud organization blocks service-account key creation, the app can still be deployed, but GA4 requests will not authenticate until the backend is updated to use OAuth refresh-token authentication or Workload Identity Federation.
+```env
+GOOGLE_CLIENT_ID=YOUR_OAUTH_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_OAUTH_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://funnels-6ncp.onrender.com/api/v1/auth/google/callback
+GOOGLE_OAUTH_SETUP_SECRET=GENERATE_A_LONG_RANDOM_SECRET
+```
 
-Do not commit a real `.env` file or service-account JSON/private key to GitHub. Keep secrets in Render environment variables.
+Do not set `VITE_API_BASE_URL` for this single-service deployment. The frontend calls the API on the same Render origin.
 
-## Google Analytics access
+## Google Cloud configuration
 
-1. Create a Google Cloud service account and enable the Google Analytics Data API.
-2. Add the service account email as **Viewer** on every GA4 property used by this dashboard.
-3. Store the service-account JSON in Render as `GOOGLE_SERVICE_ACCOUNT_JSON`.
-4. Employees do not need individual Google sign-in.
+1. Open Google Cloud project `funnels-515914`.
+2. Enable **Google Analytics Data API**.
+3. Open **Google Auth Platform → Branding** and configure the consent screen.
+4. Under **Audience**, add the Google account that owns or can access the GA4 properties as a test user if the app is in Testing mode. For a long-lived production refresh token, publish the OAuth app as appropriate for your organization's policy.
+5. Open **Clients** and use a client of type **Web application**.
+6. Add this exact Authorized redirect URI:
+   `https://funnels-6ncp.onrender.com/api/v1/auth/google/callback`
+7. Save the OAuth client ID and secret in the Render variables above.
+8. In Google Analytics Admin → Property access management, grant that same Google account at least **Viewer** access to each GA4 property used by Funnels.
+
+The app requests the `analytics.readonly` scope only. It does not require a service-account JSON key, so it works around organizations that block service-account key creation.
+
+## Connect the shared Google account
+
+1. Deploy the `open-deploy` branch with the variables above.
+2. Open `https://funnels-6ncp.onrender.com/api/v1/auth/google`.
+3. Enter the value of `GOOGLE_OAUTH_SETUP_SECRET` when prompted.
+4. Sign in to the Google account that has Viewer access to your GA4 properties and approve read-only Analytics access.
+5. The callback saves the refresh token in the existing `google_connections` table in PostgreSQL. Tokens are not written to the browser or GitHub.
+6. Return to Funnels. The header should show **GA4 Connected**.
+
+The setup secret is required to start the OAuth connection so an ordinary visitor to the public dashboard cannot replace the shared Google account. Keep it private. If you need to reconnect another Google account, rotate the setup secret in Render and repeat the process.
+
+## Add GA4 properties
+
+For each app, open **Manage Apps → Add App** (or edit an existing app) and enter its numeric GA4 Property ID. Save it, then use **Test connection**. The connected Google account must have Viewer access to that property.
+
+Overview, event discovery, funnel journeys, and campaign reports query the Google Analytics Data API. If GA4 returns no rows, the dashboard shows empty states or em dashes; it does not substitute sample analytics values. Campaign cost metrics are available only when the GA4 property is linked to Google Ads and Google exposes those metrics.
 
 ## Database
 
-Use the existing PostgreSQL `DATABASE_URL` to retain current apps, funnels, reports, and sync history. On startup, existing apps are reassigned to the shared workspace profile; their associated funnels, events, saved reports, and sync history remain attached to those apps.
+On startup, existing apps are reassigned to the shared workspace profile; their associated funnels, events, saved reports, and sync history remain attached to those apps. The existing migration already creates the `google_connections` table used to store the shared OAuth refresh token.
 
 ## Important security warning
 
-There is no login or access restriction in this mode. Anyone with the URL can add, edit, or delete apps and funnels and trigger analytics requests. The service-account key stays on the server, but dashboard data and write operations are public to URL holders. Use a private network or access-control layer if this is not acceptable.
+There is no employee login or access restriction in this mode. Anyone with the dashboard URL can add, edit, or delete apps and funnels and trigger analytics requests. The Google OAuth setup secret protects the Google-account connection flow, but it does not protect dashboard data or write operations. Use a private network or access-control layer if this is not acceptable.
