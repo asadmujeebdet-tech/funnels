@@ -260,6 +260,17 @@ const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, 
     const drop = position === 0 || !previous || previous.activeUsers === 0 ? null : event.dropPercentage;
     return { ...event, position, drop };
   });
+  const [sort, setSort] = useState<{ key: "activeUsers" | "eventCount"; dir: "asc" | "desc" } | null>(null);
+  const sortedRows = sort ? [...rows].sort((a, b) => (sort.dir === "asc" ? a[sort.key] - b[sort.key] : b[sort.key] - a[sort.key])) : rows;
+  const toggleSort = (key: "activeUsers" | "eventCount") => setSort((current) => ({ key, dir: current?.key === key && current.dir === "desc" ? "asc" : "desc" }));
+  const sortHeader = (key: "activeUsers" | "eventCount", label: string) => (
+    <th className="w-[18%] px-4 py-3.5 text-center font-bold" aria-sort={sort?.key === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+      <button type="button" onClick={() => toggleSort(key)} className="inline-flex items-center gap-1.5 uppercase hover:text-primary" title={`Sort by ${label}`}>
+        {label}
+        {sort?.key === key ? (sort.dir === "asc" ? <ArrowUp size={13} className="text-indigo-600" /> : <ArrowDown size={13} className="text-indigo-600" />) : <ArrowDown size={13} className="opacity-30" />}
+      </button>
+    </th>
+  );
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 border-b border-line px-4 py-4 sm:px-5">
@@ -269,8 +280,8 @@ const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, 
         <button className="button-secondary !px-2.5 !py-2 text-xs" onClick={onEdit} aria-label={`Edit ${funnel.name}`}><Pencil size={14} className="text-rose-600" /><span className="hidden sm:inline">Edit</span></button>
       </div>
       {expanded && <div className="overflow-x-auto"><table className="w-full min-w-[680px] table-fixed text-left text-xs">
-        <thead className="sticky top-0 bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="w-16 px-4 py-3.5 font-bold">Step</th><th className="px-4 py-3.5 font-bold">Event Name</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Total Users</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Event Count</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Drop %</th></tr></thead>
-        <tbody className="divide-y divide-line">{rows.map((event) => <tr key={`${funnel.id}-${event.eventName}`} className="transition-colors duration-150 hover:bg-surface-soft">
+        <thead className="sticky top-0 bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="w-16 px-4 py-3.5 font-bold">Step</th><th className="px-4 py-3.5 font-bold">Event Name</th>{sortHeader("activeUsers", "Total Users")}{sortHeader("eventCount", "Event Count")}<th className="w-[18%] px-4 py-3.5 text-center font-bold">Drop %</th></tr></thead>
+        <tbody className="divide-y divide-line">{sortedRows.map((event) => <tr key={`${funnel.id}-${event.eventName}`} className="transition-colors duration-150 hover:bg-surface-soft">
           <td className="px-4 py-3 text-sm font-semibold tabular-nums text-secondary">{String(event.position + 1).padStart(2, "0")}</td>
           <td className="px-4 py-3 font-mono text-[13px] font-medium text-primary">{event.eventName}</td>
           <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-primary">{event.activeUsers.toLocaleString()}</td>
