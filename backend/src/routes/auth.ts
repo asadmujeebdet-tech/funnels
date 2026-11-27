@@ -3,7 +3,7 @@ import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma";
 import { config } from "../config/env";
-import { encryptRefreshToken } from "../security/token-crypto";
+import { encryptGoogleToken } from "../security/token-crypto";
 import { requireAuth, SHARED_PROFILE_ID } from "../middleware/auth";
 
 export const authRouter = Router();
@@ -53,7 +53,7 @@ authRouter.post("/google", async (req, res, next) => {
     }
 
     // Validate encryption configuration before sending the administrator to Google.
-    encryptRefreshToken("configuration-check");
+    encryptGoogleToken("configuration-check");
     const state = randomBytes(32).toString("hex");
     res.cookie(stateCookie, state, cookieOptions);
     const url = oauthClient().generateAuthUrl({
@@ -90,12 +90,16 @@ authRouter.get("/google/callback", async (req, res) => {
     }
     const client = oauthClient();
     const { tokens } = await client.getToken(code);
+    if (!tokens.access_token) {
+      res.status(400).send(page("Google connection failed", "Google did not return an access token. Please restart the connection."));
+      return;
+    }
     const existing = await prisma.googleConnection.findUnique({
       where: { profileId: SHARED_PROFILE_ID },
       select: { refreshToken: true },
     });
     const storedRefreshToken = tokens.refresh_token
-      ? encryptRefreshToken(tokens.refresh_token)
+      ? encryptGoogleToken(tokens.refresh_token)
       : existing?.refreshToken;
     if (!storedRefreshToken) {
       res.status(400).send(page("Google connection incomplete", "Google did not return a refresh token. Remove this app's access from your Google Account security settings, then restart the connection and approve access again."));
@@ -105,13 +109,13 @@ authRouter.get("/google/callback", async (req, res) => {
       where: { profileId: SHARED_PROFILE_ID },
       create: {
         profileId: SHARED_PROFILE_ID,
-        accessToken: tokens.access_token ?? "",
+        accessToken: encryptGoogleToken(tokens.access_token),
         refreshToken: storedRefreshToken,
         tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scopes: tokens.scope ?? scopes.join(" "),
       },
       update: {
-        accessToken: tokens.access_token ?? "",
+        accessToken: encryptGoogleToken(tokens.access_token),
         refreshToken: storedRefreshToken,
         tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scopes: tokens.scope ?? scopes.join(" "),
