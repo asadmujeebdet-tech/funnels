@@ -3,6 +3,7 @@ import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../config/prisma";
 import { config } from "../config/env";
+import { encryptRefreshToken } from "../security/token-crypto";
 import { requireAuth, SHARED_PROFILE_ID } from "../middleware/auth";
 
 export const authRouter = Router();
@@ -34,7 +35,7 @@ function page(title: string, message: string, success = false): string {
 // replacing the shared Google account connection.
 authRouter.get("/google", (_req, res) => {
   if (!config.GOOGLE_OAUTH_SETUP_SECRET) {
-    res.status(503).send(page("Google setup is locked", "Add GOOGLE_OAUTH_SETUP_SECRET, GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to Render before connecting Google Analytics."));
+    res.status(503).send(page("Google setup is locked", "Add GOOGLE_OAUTH_SETUP_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and TOKEN_ENCRYPTION_KEY to Render before connecting Google Analytics."));
     return;
   }
   res.type("html").send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Google Analytics</title><body style="font:16px system-ui;background:#f5f7fb;color:#182230;padding:40px"><main style="max-width:440px;margin:8vh auto;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:32px"><h1>Connect Google Analytics</h1><p>Enter the private setup secret configured in Render. This is only required by the workspace administrator.</p><form method="post" action="/api/v1/auth/google"><label for="setupSecret">Setup secret</label><input id="setupSecret" name="setupSecret" type="password" required autocomplete="current-password" style="display:block;box-sizing:border-box;width:100%;padding:12px;margin:8px 0 18px;border:1px solid #d0d5dd;border-radius:8px"><button style="padding:12px 18px;background:#4f46e5;color:white;border:0;border-radius:8px;cursor:pointer">Continue with Google</button></form></main></body></html>`);
@@ -51,6 +52,8 @@ authRouter.post("/google", async (req, res, next) => {
       return;
     }
 
+    // Validate encryption configuration before sending the administrator to Google.
+    encryptRefreshToken("configuration-check");
     const state = randomBytes(32).toString("hex");
     res.cookie(stateCookie, state, cookieOptions);
     const url = oauthClient().generateAuthUrl({
@@ -69,7 +72,7 @@ authRouter.post("/google", async (req, res, next) => {
 authRouter.get("/google/callback", async (req, res) => {
   const expectedState = String(req.cookies?.[stateCookie] ?? "");
   const receivedState = String(req.query.state ?? "");
-  res.clearCookie(stateCookie, { ...cookieOptions, maxAge: undefined });
+  res.clearCookie(stateCookie, { httpOnly: true, secure: config.NODE_ENV === "production", sameSite: "lax", path: cookiePath });
   if (!expectedState || !receivedState || expectedState !== receivedState) {
     res.status(400).send(page("Google connection failed", "The OAuth state check failed. Please restart the connection from the dashboard."));
     return;
@@ -91,8 +94,13 @@ authRouter.get("/google/callback", async (req, res) => {
       where: { profileId: SHARED_PROFILE_ID },
       select: { refreshToken: true },
     });
-    const refreshToken = tokens.refresh_token ?? existing?.refreshToken;
-    if (!refreshToken) {
+    const refreshToken = tokens.refresh_token ?? (existing?.refreshToken
+      ? undefined
+      : undefined);
+    const storedRefreshToken = refreshToken
+      ? encryptRefreshToken(refreshToken)
+      : existing?.refreshToken;
+    if (!storedRefreshToken) {
       res.status(400).send(page("Google connection incomplete", "Google did not return a refresh token. Remove this app's access from your Google Account security settings, then restart the connection and approve access again."));
       return;
     }
@@ -101,13 +109,13 @@ authRouter.get("/google/callback", async (req, res) => {
       create: {
         profileId: SHARED_PROFILE_ID,
         accessToken: tokens.access_token ?? "",
-        refreshToken,
+        refreshToken: storedRefreshToken,
         tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scopes: tokens.scope ?? scopes.join(" "),
       },
       update: {
         accessToken: tokens.access_token ?? "",
-        refreshToken,
+        refreshToken: storedRefreshToken,
         tokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
         scopes: tokens.scope ?? scopes.join(" "),
       },
@@ -143,8 +151,3 @@ authRouter.get("/me", requireAuth, async (_req, res, next) => {
 
 // There is no user session to end in open deployment mode.
 authRouter.post("/logout", (_req, res) => res.status(204).end());
-
-// Individual Google sign-in is not part of this shared workspace.
-authRouter.get("/google/callback/legacy", (_req, res) => {
-  res.status(410).json({ error: "Individual Google sign-in is disabled." });
-});
