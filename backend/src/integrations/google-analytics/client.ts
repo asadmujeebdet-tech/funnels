@@ -2,7 +2,7 @@ import { BetaAnalyticsDataClient, v1alpha } from "@google-analytics/data";
 import { OAuth2Client, JWT } from "google-auth-library";
 import { config } from "../../config/env";
 import { prisma } from "../../config/prisma";
-import { decryptRefreshToken } from "../../security/token-crypto";
+import { decryptGoogleToken } from "../../security/token-crypto";
 
 let serviceAccountClient: JWT | null = null;
 
@@ -52,7 +52,7 @@ async function getGoogleAuthClient(): Promise<OAuth2Client | JWT> {
   }
 
   const client = new OAuth2Client(config.GOOGLE_CLIENT_ID, config.GOOGLE_CLIENT_SECRET, config.GOOGLE_REDIRECT_URI);
-  client.setCredentials({ refresh_token: decryptRefreshToken(connection.refreshToken) });
+  client.setCredentials({ refresh_token: decryptGoogleToken(connection.refreshToken) });
   return client;
 }
 
