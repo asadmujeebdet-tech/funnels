@@ -244,7 +244,7 @@ export function OverviewPage(props: Props) {
         {loading && <div className="filter-loading-track" role="status" aria-label="Updating analytics"><span /></div>}
         {!props.googleConnected && <Alert kind="info">Connect Google Analytics to load actual GA4 metrics. Analytics values are not replaced with sample data.</Alert>}
         {props.googleConnected && app && !app.ga4PropertyId && <Alert kind="info">Set and test a GA4 Property ID for this app in Manage Apps before loading metrics.</Alert>}
-        <div className={`mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 ${loading ? "opacity-75" : "opacity-100"} transition-opacity duration-200`} aria-busy={loading}>
+        <div className={`mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 ${loading ? "opacity-75" : "opacity-100"} transition-opacity duration-200`} aria-busy={loading}>
           {cards.map((item) => <MetricCard key={item.label} {...item} value={loading && !data ? "…" : item.value} />)}
         </div>
         <div className="mb-3 mt-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-primary">User Journey</h2><p className="mt-1 text-xs text-secondary">Event-level engagement across this application's configured funnels.{data?.timeZone ? ` Dates follow the GA4 property time zone (${data.timeZone}).` : ""}</p></div><span className="text-xs text-muted">{data?.funnels.length ?? 0} funnels</span></div>
