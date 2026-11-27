@@ -1,4 +1,4 @@
-import { BarChart3, ChevronDown, Grid2X2, LayoutDashboard, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Sun, Workflow } from "lucide-react";
+import { BarChart3, ChevronDown, Grid2X2, LayoutDashboard, Menu, Moon, PanelLeftClose, PanelLeftOpen, RefreshCw, Sun, Workflow } from "lucide-react";
 import { useState, type PropsWithChildren } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import type { Profile } from "../types";
@@ -28,7 +28,7 @@ function initials(profile: Profile) {
   return (profile.name || profile.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((part) => part[0]!.toUpperCase()).join("");
 }
 
-export function AppShell({ profile, onLogout, children }: Props) {
+export function AppShell({ profile, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
@@ -61,7 +61,7 @@ export function AppShell({ profile, onLogout, children }: Props) {
           <div className={`flex items-center rounded-lg px-2 py-2 ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-200">{initials(profile)}</span>
             {!sidebarCollapsed && <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-white">{profile.name || "Account"}</p><p className="truncate text-[11px] text-slate-500">{profile.email}</p></div>}
-            <button onClick={onLogout} aria-label="Log out" title="Log out" className={`rounded-md p-2 text-slate-400 hover:bg-white/10 hover:text-white ${sidebarCollapsed ? "absolute bottom-3 right-2" : ""}`}><LogOut size={15} /></button>
+            <span className="ml-auto rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Shared</span>
           </div>
         </div>
       </aside>
