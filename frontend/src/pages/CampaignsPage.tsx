@@ -12,26 +12,6 @@ type Props = { profile: Profile; googleConnected: boolean; onLogout: () => void 
 type CampaignRow = CampaignCostReport["campaigns"][number];
 type Metric = "cost" | "clicks" | "impressions";
 
-const PRESETS = [
-  ["today", "Today"],
-  ["yesterday", "Yesterday"],
-  ["7d", "Last 7 days"],
-  ["30d", "Last 30 days"],
-  ["90d", "Last 90 days"],
-] as const;
-
-function rangeStart(preset: string): string {
-  if (preset === "today") return today();
-  if (preset === "yesterday") return daysAgo(1);
-  if (preset === "7d") return daysAgo(6);
-  if (preset === "90d") return daysAgo(89);
-  return daysAgo(29);
-}
-
-function rangeEnd(preset: string): string {
-  return preset === "yesterday" ? daysAgo(1) : today();
-}
-
 function MetricCard({ label, value, note, icon: Icon, tone }: {
   label: string;
   value: string;
@@ -54,7 +34,7 @@ function currencyFormatter(currency: string | null): Intl.NumberFormat {
 export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
   const [startDate, setStartDate] = useState(daysAgo(29));
   const [endDate, setEndDate] = useState(today());
-  const [preset, setPreset] = useState("30d");
+  const [, setPreset] = useState("30d");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState("");
@@ -174,14 +154,6 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
     series: [{ type: "line", smooth: true, symbolSize: 5, areaStyle: { opacity: .08 }, data: trend.map((point) => point[trendMetric]) }],
   }), [trend, trendMetric, dark]);
 
-  function setRange(value: string) {
-    setPreset(value);
-    if (value !== "custom") {
-      setStartDate(rangeStart(value));
-      setEndDate(rangeEnd(value));
-    }
-  }
-
   return (
     <AppShell profile={profile} googleConnected={googleConnected} onLogout={onLogout}>
       <div className="mb-6 flex items-end justify-between gap-4">
@@ -191,9 +163,9 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
       {!googleConnected && <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3.5 py-3 text-sm text-indigo-800 dark:border-indigo-900/60 dark:bg-indigo-950/30 dark:text-indigo-200">Connect Google Analytics to query campaign performance.</div>}
 
       <div className="sticky top-[64px] z-20 -mx-4 px-4 py-2 sm:-mx-7 sm:px-7">
-        <section className="rounded-xl border border-line bg-surface/95 p-3 shadow-md backdrop-blur sm:p-4">
+        <section className="rounded-2xl bg-surface/95 p-3 shadow-md backdrop-blur">
           <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Filter size={14} />Campaign filters</div>{loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}</div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div ref={campaignFilterRef} className="relative">
               <label className="label" htmlFor="campaign-name-filter">Campaign Name</label>
               <button id="campaign-name-filter" type="button" className="field flex items-center justify-between gap-2 text-left" aria-haspopup="listbox" aria-expanded={campaignMenuOpen} aria-controls="campaign-name-options" onClick={() => setCampaignMenuOpen((open) => !open)}>
@@ -208,7 +180,6 @@ export function CampaignsPage({ profile, googleConnected, onLogout }: Props) {
                 </div>
               </div>}
             </div>
-            <div><label className="label" htmlFor="campaign-preset">Date Range</label><select id="campaign-preset" className="field" value={preset} onChange={(event) => setRange(event.target.value)}>{PRESETS.map(([key, label]) => <option key={key} value={key}>{label}</option>)}<option value="custom">Custom</option></select></div>
             <div><label className="label" htmlFor="campaign-start">From</label><input id="campaign-start" className="field" type="date" value={startDate} max={endDate} onChange={(event) => { setPreset("custom"); setStartDate(event.target.value); }} /></div>
             <div><label className="label" htmlFor="campaign-end">To</label><input id="campaign-end" className="field" type="date" value={endDate} min={startDate} max={today()} onChange={(event) => { setPreset("custom"); setEndDate(event.target.value); }} /></div>
           </div>

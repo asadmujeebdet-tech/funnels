@@ -11,7 +11,6 @@ import {
   CircleAlert,
   Copy,
   ExternalLink,
-  Filter,
     ImagePlus,
   Layers,
   Pencil,
@@ -99,12 +98,12 @@ function ApplicationPicker({ apps, value, onChange, id, disabled = false }: { ap
   }, [open]);
   return <div ref={rootRef} className="relative">
     <button id={id} type="button" className="field flex items-center justify-between gap-2 text-left disabled:opacity-60" role="combobox" aria-expanded={open} aria-haspopup="listbox" aria-controls={`${id}-options`} disabled={disabled} onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
-      {selected ? <span className="flex min-w-0 items-center gap-2"><IconTile app={selected} size="sm" /><span className="truncate text-primary">{selected.name}{selected.packageName ? ` · ${selected.packageName}` : ""}</span></span> : <span className="text-muted">Select an application</span>}
+      {selected ? <span className="flex min-w-0 items-center gap-2"><IconTile app={selected} size="sm" /><span className="truncate text-primary">{selected.name}</span></span> : <span className="text-muted">Select an application</span>}
       <ChevronDown size={15} className={`shrink-0 text-muted transition-transform duration-150 ${open ? "rotate-180" : ""}`} />
     </button>
     {open && <div id={`${id}-options`} role="listbox" aria-label="Applications" className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-xl">
       {apps.map((app) => <button key={app.id} type="button" role="option" aria-selected={app.id === value} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-surface-soft focus:bg-surface-soft focus:outline-none" onClick={() => { onChange(app.id); setOpen(false); }}>
-        <IconTile app={app} size="sm" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium text-primary">{app.name}</span><span className="block truncate font-mono text-[10px] text-muted">{app.packageName || "Package name not set"}</span></span>
+        <IconTile app={app} size="sm" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium text-primary">{app.name}</span></span>
       </button>)}
       {!apps.length && <p className="px-3 py-2 text-xs text-muted">No applications available.</p>}
     </div>}
@@ -112,7 +111,14 @@ function ApplicationPicker({ apps, value, onChange, id, disabled = false }: { ap
 }
 
 function AppIdentity({ app, connected }: { app: Application; connected: boolean }) {
-  return <Card className="w-fit max-w-full flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:p-5"><IconTile app={app} size="lg" /><div className="min-w-0 max-w-[36rem] flex-1"><h2 className="truncate text-base font-semibold text-primary">{app.name}</h2><p className="mt-1 truncate font-mono text-xs text-muted">{app.packageName || "Package name not set"}</p>{app.appUrl && <a className="mt-2 inline-flex max-w-full items-center gap-1.5 truncate text-xs font-medium text-indigo-600 hover:text-indigo-700" href={app.appUrl} target="_blank" rel="noreferrer">{new URL(app.appUrl).host}<ExternalLink size={12} /></a>}</div><Status connected={connected} /></Card>;
+  const playUrl = app.packageName ? `https://play.google.com/store/apps/details?id=${encodeURIComponent(app.packageName)}` : app.appUrl || "";
+  return <div className="flex min-w-0 items-center gap-3 lg:pr-4">
+    <IconTile app={app} size="md" />
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-2"><h2 className="truncate text-base font-semibold text-primary">{app.name}</h2><Status connected={connected} /></div>
+      {app.packageName && playUrl && <a className="mt-0.5 inline-flex max-w-full items-center gap-1 truncate font-mono text-xs text-indigo-600 hover:underline" href={playUrl} target="_blank" rel="noreferrer">{app.packageName}<ExternalLink size={11} /></a>}
+    </div>
+  </div>;
 }
 
 function formatEngagementTime(seconds: number | null): string {
@@ -143,10 +149,6 @@ function rangeStart(preset: string): string {
   if (preset === "90d") return daysAgo(89);
   return daysAgo(29);
 }
-function rangeEnd(preset: string): string {
-  return preset === "yesterday" ? daysAgo(1) : today();
-}
-
 const EMPTY_METRICS: OverviewMetrics = {
   activeUsers: null,
   newUsers: null,
@@ -166,9 +168,8 @@ export function OverviewPage(props: Props) {
   const [appId, setAppId] = useState(searchParams.get("app") ?? "");
   const [version, setVersion] = useState("");
   const [country, setCountry] = useState("");
-  const [preset, setPreset] = useState("30d");
-  const [startDate, setStartDate] = useState(rangeStart("30d"));
-  const [endDate, setEndDate] = useState(today());
+  const [startDate] = useState(rangeStart("30d"));
+  const [endDate] = useState(today());
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -219,14 +220,6 @@ export function OverviewPage(props: Props) {
     { label: "Average Engagement Time", value: formatEngagementTime(metrics.userEngagementDuration !== null && metrics.activeUsers ? metrics.userEngagementDuration / metrics.activeUsers : null), note: "Per active user", icon: Clock3, tone: "amber" as const },
   ];
 
-  function applyPreset(value: string) {
-    setPreset(value);
-    if (value !== "custom") {
-      setStartDate(rangeStart(value));
-      setEndDate(rangeEnd(value));
-    }
-  }
-
   if (appsLoading && !apps.length) return <AppShell profile={props.profile} googleConnected={props.googleConnected} onLogout={props.onLogout}><div className="skeleton h-10 w-64" /><div className="mt-5 grid gap-3 md:grid-cols-3">{[1, 2, 3].map((x) => <div key={x} className="skeleton h-28" />)}</div></AppShell>;
   return (
     <AppShell profile={props.profile} googleConnected={props.googleConnected} onLogout={props.onLogout}>
@@ -234,21 +227,17 @@ export function OverviewPage(props: Props) {
       {error && <div className="mb-4"><Alert><CircleAlert size={16} />{error}</Alert></div>}
       {!apps.length ? <Card><Empty title="Add your first app" description="Manage Apps is where you connect an application and its GA4 property." action={<Link className="button-primary" to="/apps"><Plus size={15} /> Manage Apps</Link>} /></Card> : <>
         <PageTitle title="Overview" subtitle="Engagement, retention and funnel performance for the selected application." />
-        {app && <div className="mb-4"><AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} /></div>}
         <div className="sticky top-[64px] z-40 -mx-4 bg-app px-4 py-2 sm:-mx-7 sm:px-7">
-        <Card className="border-line/80 bg-surface/95 p-3 shadow-md backdrop-blur">
-          <div className="mb-1.5 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Filter size={14} />Report filters</div>{loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}</div>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
-            <div><label className="label" htmlFor="overview-range">Date range</label><select id="overview-range" className="field" value={preset} onChange={(event) => applyPreset(event.target.value)}><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="custom">Custom</option></select></div>
-          </div>
-          <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-            <div><label className="label" htmlFor="overview-country">Country</label><select id="overview-country" className="field" value={country} onChange={(event) => setCountry(event.target.value)}><option value="">All countries</option>{(data?.countries ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
-            <div><label className="label" htmlFor="overview-start">From</label><input id="overview-start" className="field" type="date" value={startDate} max={endDate} onChange={(event) => { setPreset("custom"); setStartDate(event.target.value); }} /></div>
-            <div><label className="label" htmlFor="overview-end">To</label><input id="overview-end" className="field" type="date" value={endDate} min={startDate} max={today()} onChange={(event) => { setPreset("custom"); setEndDate(event.target.value); }} /></div>
-          </div>
-        </Card>
+          <Card className="border-0 bg-surface/95 p-3 shadow-md backdrop-blur">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              {app && <AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} />}
+              <div className="grid flex-1 gap-2.5 sm:grid-cols-2 lg:ml-auto lg:max-w-2xl">
+                <div><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
+                <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
+              </div>
+              {loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}
+            </div>
+          </Card>
         </div>
         {!props.googleConnected && <Alert kind="info">Connect Google Analytics to load actual GA4 metrics. Analytics values are not replaced with sample data.</Alert>}
         {props.googleConnected && app && !app.ga4PropertyId && <Alert kind="info">Set and test a GA4 Property ID for this app in Manage Apps before loading metrics.</Alert>}
@@ -469,6 +458,7 @@ export function ManageAppsPage(props: Props) {
   const [busy, setBusy] = useState(false);
   const [testing, setTesting] = useState("");
   const iconLookupSequence = useRef(0);
+  const [iconFetchTick, setIconFetchTick] = useState(0);
   const { toast } = useWorkspace();
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<AppFormValues>({ resolver: zodResolver(appSchema), defaultValues: { name: "", packageName: "", appUrl: "", ga4PropertyId: "", appIconData: null } });
   const appUrlField = register("appUrl");
@@ -506,12 +496,12 @@ export function ManageAppsPage(props: Props) {
           if (requestId === iconLookupSequence.current) setIconLookupBusy(false);
         }
       })();
-    }, 650);
+    }, iconFetchTick ? 0 : 650);
     return () => {
       window.clearTimeout(timer);
       if (requestId === iconLookupSequence.current) iconLookupSequence.current += 1;
     };
-  }, [appUrlValue, dialogOpen, iconSource, setValue]);
+  }, [appUrlValue, dialogOpen, iconSource, iconFetchTick, setValue]);
 
   function openForm(app?: Application) {
     const target = app ?? null;
@@ -586,11 +576,10 @@ export function ManageAppsPage(props: Props) {
       <Card className="overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-sm font-semibold text-primary">Applications</h2><p className="mt-1 text-xs text-secondary">{apps.length} apps in this workspace</p></div><div className="flex gap-2"><div className="relative w-full sm:w-64"><Search size={14} className="absolute left-3 top-3 text-muted" /><input className="field !py-2 !pl-9 !text-xs" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search apps" aria-label="Search apps" /></div><button className="button-secondary !px-2.5 !py-2" onClick={() => void loadApps()} aria-label="Refresh apps"><RefreshCw size={15} /></button></div></div>
         {loading ? <Skeleton /> : !filteredApps.length ? <Empty title={apps.length ? "No apps match your search" : "No apps yet"} description={apps.length ? "Try searching by app name, package, or URL." : "Add an app with its GA4 property to start building funnels."} action={!apps.length ? <button className="button-primary" onClick={() => openForm()}><Plus size={15} /> Add App</button> : undefined} /> : <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left text-sm">
-          <thead className="bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="px-4 py-3.5 font-bold">Icon</th><th className="px-4 py-3.5 font-bold">App Name</th><th className="px-4 py-3.5 font-bold">Package Name</th><th className="px-4 py-3.5 font-bold">App URL</th><th className="px-4 py-3.5 font-bold">GA4 Property ID</th><th className="px-4 py-3.5 font-bold">Funnels</th><th className="px-4 py-3.5 font-bold">Status</th><th className="px-4 py-3.5 font-bold">Actions</th></tr></thead>
+          <thead className="bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="px-4 py-3.5 font-bold">Icon</th><th className="px-4 py-3.5 font-bold">App Name</th><th className="px-4 py-3.5 font-bold">App URL</th><th className="px-4 py-3.5 font-bold">GA4 Property ID</th><th className="px-4 py-3.5 font-bold">Funnels</th><th className="px-4 py-3.5 font-bold">Status</th><th className="px-4 py-3.5 font-bold">Actions</th></tr></thead>
           <tbody className="divide-y divide-line">{filteredApps.map((app) => <tr key={app.id} className="transition-colors duration-150 hover:bg-surface-soft">
             <td className="px-4 py-3"><IconTile app={app} size="sm" /></td>
             <td className="px-4 py-3 font-medium text-primary">{app.name}</td>
-            <td className="px-4 py-3 font-mono text-xs text-secondary">{app.packageName || "—"}</td>
             <td className="max-w-48 px-4 py-3">{app.appUrl ? <a href={app.appUrl} target="_blank" rel="noreferrer" className="inline-flex max-w-full items-center gap-1 truncate text-xs text-indigo-600 hover:underline">{new URL(app.appUrl).host}<ExternalLink size={12} /></a> : <span className="text-muted">—</span>}</td>
             <td className="px-4 py-3 font-mono text-xs text-secondary">{app.ga4PropertyId || "—"}</td>
             <td className="px-4 py-3 tabular-nums text-secondary">{app._count?.features ?? "—"}</td>
@@ -607,9 +596,10 @@ export function ManageAppsPage(props: Props) {
         <form onSubmit={(event) => void handleSubmit(saveApp)(event)} className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><label className="label" htmlFor="app-name">App name</label><input id="app-name" className="field" placeholder="Fitness Pro" {...register("name")} />{errors.name && <p className="mt-1 text-xs text-rose-600">{errors.name.message}</p>}</div>
           <div><label className="label" htmlFor="app-package">Package name</label><input id="app-package" className="field" placeholder="com.example.fitness" {...register("packageName")} />{errors.packageName && <p className="mt-1 text-xs text-rose-600">{errors.packageName.message}</p>}</div>
-          <div><label className="label" htmlFor="app-url">App URL</label><input id="app-url" className="field" type="url" placeholder="https://play.google.com/store/apps/details?id=com.example.app" name={appUrlField.name} ref={appUrlField.ref} onBlur={appUrlField.onBlur} onChange={(event) => { void appUrlField.onChange(event); const value = event.target.value; setAppUrlValue(value); setIconLookupError(""); setIconLookupBusy(false); if (iconSource === "google-play") { setIconSource(""); setIconPreview(null); setValue("appIconUrl", null); setValue("appIconData", null); } }} />{errors.appUrl && <p className="mt-1 text-xs text-rose-600">{errors.appUrl.message}</p>}<p className="mt-1 text-[11px] text-muted">For Google Play links, the official listing icon is checked automatically. Other links can use an uploaded icon.</p></div>
+          <div><label className="label" htmlFor="app-url">Play Store URL</label><input id="app-url" className="field" type="url" placeholder="https://play.google.com/store/apps/details?id=com.example.app" name={appUrlField.name} ref={appUrlField.ref} onBlur={appUrlField.onBlur} onChange={(event) => { void appUrlField.onChange(event); const value = event.target.value; setAppUrlValue(value); setIconLookupError(""); setIconLookupBusy(false); if (iconSource === "google-play") { setIconSource(""); setIconPreview(null); setValue("appIconUrl", null); setValue("appIconData", null); } }} />{errors.appUrl && <p className="mt-1 text-xs text-rose-600">{errors.appUrl.message}</p>}</div>
           <div><label className="label" htmlFor="app-property">GA4 Property ID</label><input id="app-property" className="field" inputMode="numeric" placeholder="412345678" {...register("ga4PropertyId")} />{errors.ga4PropertyId && <p className="mt-1 text-xs text-rose-600">{errors.ga4PropertyId.message}</p>}</div>
-          <div><label className="label" htmlFor="app-icon">App icon</label><div className="flex flex-wrap items-center gap-3"><label htmlFor="app-icon" className="button-secondary cursor-pointer"><ImagePlus size={15} />Upload fallback</label><input id="app-icon" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void handleIconFile(event.target.files?.[0])} />{iconPreview ? <img src={iconPreview} alt="App icon preview" className="h-10 w-10 rounded-lg border border-line object-cover" onError={() => { if (iconSource === "google-play") { setIconPreview(null); setValue("appIconUrl", null); setIconLookupError("The app icon could not be loaded. Upload an icon instead."); } }} /> : <span className="text-xs text-muted">No icon selected</span>}{iconPreview && <button type="button" className="text-xs text-rose-600 hover:text-rose-700" onClick={() => { setIconPreview(null); setIconSource(""); setValue("appIconData", null); setValue("appIconUrl", null); }}>Remove icon</button>}</div>{iconLookupBusy && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-secondary" role="status"><RefreshCw size={13} className="animate-spin" />Checking Google Play icon…</p>}{iconLookupError && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{iconLookupError}</p>}<input type="hidden" {...register("appIconData")} /><input type="hidden" {...register("appIconUrl")} /></div>
+          <div><label className="label" htmlFor="app-icon">App icon</label><div className="flex flex-wrap items-center gap-3"><label htmlFor="app-icon" className="button-secondary cursor-pointer"><ImagePlus size={15} />Upload fallback</label><input id="app-icon" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void handleIconFile(event.target.files?.[0])} />{iconPreview ? <img src={iconPreview} alt="App icon preview" className="h-10 w-10 rounded-lg border border-line object-cover" onError={() => { if (iconSource === "google-play") { setIconPreview(null); setValue("appIconUrl", null); setIconLookupError("The app icon could not be loaded. Upload an icon instead."); } }} /> : <span className="text-xs text-muted">No icon selected</span>}{iconPreview && <button type="button" className="text-xs text-rose-600 hover:text-rose-700" onClick={() => { setIconPreview(null); setIconSource(""); setValue("appIconData", null); setValue("appIconUrl", null); }}>Remove icon</button>}</div>{iconLookupBusy && <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-secondary" role="status"><RefreshCw size={13} className="animate-spin" />Checking Google Play icon…</p>}{iconLookupError && <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{iconLookupError}</p>}<input type="hidden" {...register("appIconData")} /></div>
+          <div className="sm:col-span-2"><label className="label" htmlFor="app-icon-url">App icon URL</label><div className="flex gap-2"><input id="app-icon-url" className="field font-mono text-xs" type="url" placeholder="Fetched automatically from the Play Store URL" {...register("appIconUrl", { onChange: (event) => { const value = event.target.value.trim(); setIconPreview(value || null); setIconSource(value ? "google-play" : ""); if (value) setValue("appIconData", null); } })} /><button type="button" className="button-secondary shrink-0" disabled={iconLookupBusy || !appUrlValue} onClick={() => { setIconLookupError(""); setIconSource(""); setValue("appIconUrl", null); setIconPreview(null); setIconFetchTick((n) => n + 1); }}><RefreshCw size={14} className={iconLookupBusy ? "animate-spin" : ""} />Fetch icon</button></div><p className="mt-1 text-[11px] text-muted">Enter the Play Store URL above, then fetch the official icon.</p></div>
           {formError && <div className="sm:col-span-2"><Alert>{formError}</Alert></div>}
           <div className="flex justify-end gap-2 border-t border-line pt-4 sm:col-span-2"><button type="button" className="button-secondary" onClick={closeForm}>Cancel</button><button className="button-primary" disabled={busy}>{busy ? "Saving…" : editingApp ? "Save changes" : "Save app"}</button></div>
         </form></Card></div>}
