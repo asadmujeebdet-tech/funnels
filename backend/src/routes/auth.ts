@@ -94,11 +94,8 @@ authRouter.get("/google/callback", async (req, res) => {
       where: { profileId: SHARED_PROFILE_ID },
       select: { refreshToken: true },
     });
-    const refreshToken = tokens.refresh_token ?? (existing?.refreshToken
-      ? undefined
-      : undefined);
-    const storedRefreshToken = refreshToken
-      ? encryptRefreshToken(refreshToken)
+    const storedRefreshToken = tokens.refresh_token
+      ? encryptRefreshToken(tokens.refresh_token)
       : existing?.refreshToken;
     if (!storedRefreshToken) {
       res.status(400).send(page("Google connection incomplete", "Google did not return a refresh token. Remove this app's access from your Google Account security settings, then restart the connection and approve access again."));
