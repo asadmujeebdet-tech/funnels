@@ -41,8 +41,8 @@ export function AppShell({ profile, onLogout, children }: Props) {
 
   return (
     <div className="min-h-screen bg-app text-primary">
-      {mobileOpen && <button className="fixed inset-0 z-40 bg-slate-950/45 lg:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex ${sidebarCollapsed ? "w-[76px]" : "w-[250px]"} flex-col bg-nav px-4 py-5 text-slate-300 transition-[width,transform] duration-200 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      {mobileOpen && <button className="fixed inset-0 z-40 bg-slate-950/45 md:hidden" aria-label="Close navigation" onClick={() => setMobileOpen(false)} />}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex ${sidebarCollapsed ? "w-[76px]" : "w-[250px]"} flex-col bg-nav px-4 py-5 text-slate-300 transition-[width,transform] duration-200 md:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="px-2">
           <NavLink to="/overview" onClick={() => setMobileOpen(false)} aria-label="Journey Analytics Overview" className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-3"}`}>
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500 text-white"><Workflow size={21} /></span>
@@ -66,11 +66,11 @@ export function AppShell({ profile, onLogout, children }: Props) {
         </div>
       </aside>
 
-      <div className={sidebarCollapsed ? "lg:pl-[76px]" : "lg:pl-[250px]"}>
+      <div className={sidebarCollapsed ? "md:pl-[76px]" : "md:pl-[250px]"}>
         <header className="sticky top-0 z-30 flex min-h-[64px] items-center justify-between gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-md sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-secondary hover:bg-surface-soft lg:hidden" aria-label="Open navigation"><Menu size={19} /></button>
-            <button onClick={() => setSidebarCollapsed((current) => !current)} className="hidden rounded-lg p-2 text-secondary hover:bg-surface-soft lg:inline-flex" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
+            <button onClick={() => setMobileOpen(true)} className="rounded-lg p-2 text-secondary hover:bg-surface-soft md:hidden" aria-label="Open navigation"><Menu size={19} /></button>
+            <button onClick={() => setSidebarCollapsed((current) => !current)} className="hidden rounded-lg p-2 text-secondary hover:bg-surface-soft md:inline-flex" aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button>
             <div className="min-w-0"><p className="truncate text-sm font-semibold text-primary">{title}</p><p className="hidden text-[11px] text-muted sm:block">Home <span className="px-1.5">/</span> {title}</p></div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

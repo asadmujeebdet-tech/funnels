@@ -133,15 +133,8 @@ function MetricCard({ label, value, note, icon: Icon, tone }: {
   icon: typeof Users;
   tone: "blue" | "violet" | "rose" | "green" | "amber" | "cyan";
 }) {
-  const tones = {
-    blue: "border-blue-100 bg-blue-50/80 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300",
-    violet: "border-violet-100 bg-violet-50/80 text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300",
-    rose: "border-rose-100 bg-rose-50/80 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300",
-    green: "border-emerald-100 bg-emerald-50/80 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300",
-    amber: "border-amber-100 bg-amber-50/80 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300",
-    cyan: "border-cyan-100 bg-cyan-50/80 text-cyan-700 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300",
-  };
-  return <section className={`rounded-xl border p-4 shadow-sm transition-colors duration-300 ${tones[tone]}`}><div className="flex items-start justify-between gap-2"><p className="text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p><Icon size={16} aria-hidden="true" /></div><p className="mt-3 text-xl font-semibold tabular-nums text-primary transition-all duration-300">{value}</p><p className="mt-1 text-[10px] text-secondary">{note}</p></section>;
+  const tones = { blue: "bg-blue-50 text-blue-600", violet: "bg-violet-50 text-violet-600", rose: "bg-rose-50 text-rose-600", green: "bg-emerald-50 text-emerald-600", amber: "bg-amber-50 text-amber-600", cyan: "bg-cyan-50 text-cyan-600" };
+  return <section className="rounded-2xl border border-line bg-surface p-4 shadow-card"><div className="flex items-center gap-2.5"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tones[tone]}`}><Icon size={16} aria-hidden="true" /></span><p className="truncate text-xs font-medium text-secondary">{label}</p></div><p className="mt-3 truncate text-2xl font-semibold tabular-nums tracking-tight text-primary">{value}</p>{note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}</section>;
 }
 
 function rangeStart(preset: string): string {
@@ -242,18 +235,19 @@ export function OverviewPage(props: Props) {
       {appsError && <div className="mb-4"><Alert>{appsError}</Alert></div>}
       {error && <div className="mb-4"><Alert><CircleAlert size={16} />{error}</Alert></div>}
       {!apps.length ? <Card><Empty title="Add your first app" description="Manage Apps is where you connect an application and its GA4 property." action={<Link className="button-primary" to="/apps"><Plus size={15} /> Manage Apps</Link>} /></Card> : <>
+        <PageTitle title="Overview" subtitle="Engagement, retention and funnel performance for the selected application." />
         {app && <div className="mb-4"><AppIdentity app={app} connected={props.googleConnected && Boolean(app.ga4PropertyId)} /></div>}
-        <div className="sticky top-[68px] z-40 -mx-4 bg-app px-4 py-2 sm:-mx-7 sm:px-7">
+        <div className="sticky top-[64px] z-40 -mx-4 bg-app px-4 py-2 sm:-mx-7 sm:px-7">
         <Card className="border-line/80 bg-surface/95 p-3 shadow-md backdrop-blur sm:p-4">
           <div className="mb-2 flex items-center justify-between gap-2"><div className="flex items-center gap-2 text-xs font-semibold text-secondary"><Filter size={14} />Report filters</div>{loading && <span className="inline-flex items-center gap-1.5 text-[11px] text-indigo-600" role="status"><RefreshCw size={12} className="animate-spin" />Updating</span>}</div>
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="contents">
               <div className="sm:col-span-2"><label className="label" htmlFor="overview-app">Application</label><ApplicationPicker id="overview-app" apps={apps} value={appId} onChange={(value) => { setAppId(value); setVersion(""); setCountry(""); setData(null); setExpanded({}); }} /></div>
               <div><label className="label" htmlFor="overview-version">App version</label><select id="overview-version" className="field" value={version} onChange={(event) => setVersion(event.target.value)}><option value="">All versions</option>{(data?.appVersions ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
               <div><label className="label" htmlFor="overview-country">Country</label><select id="overview-country" className="field" value={country} onChange={(event) => setCountry(event.target.value)}><option value="">All countries</option>{(data?.countries ?? []).map((item) => <option key={item} value={item}>{item}</option>)}</select></div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="sm:col-span-2"><label className="label" htmlFor="overview-range">Date range</label><select id="overview-range" className="field" value={preset} onChange={(event) => applyPreset(event.target.value)}><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="custom">Custom</option></select></div>
+            <div className="contents">
+              <div><label className="label" htmlFor="overview-range">Date range</label><select id="overview-range" className="field" value={preset} onChange={(event) => applyPreset(event.target.value)}><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="90d">Last 90 days</option><option value="custom">Custom</option></select></div>
               <div><label className="label" htmlFor="overview-start">From</label><input id="overview-start" className="field" type="date" value={startDate} max={endDate} onChange={(event) => { setPreset("custom"); setStartDate(event.target.value); }} /></div>
               <div><label className="label" htmlFor="overview-end">To</label><input id="overview-end" className="field" type="date" value={endDate} min={startDate} max={today()} onChange={(event) => { setPreset("custom"); setEndDate(event.target.value); }} /></div>
             </div>
