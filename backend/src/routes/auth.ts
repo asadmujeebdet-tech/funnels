@@ -144,7 +144,8 @@ authRouter.get("/me", requireAuth, async (_req, res, next) => {
       select: { refreshToken: true },
     });
     const serviceAccountConfigured = Boolean(config.GOOGLE_SERVICE_ACCOUNT_JSON || (config.GOOGLE_SERVICE_ACCOUNT_EMAIL && config.GOOGLE_PRIVATE_KEY));
-    res.json({ profile, googleConnected: serviceAccountConfigured || Boolean(connection?.refreshToken) });
+    const oauthConfigured = Boolean(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET && connection?.refreshToken);
+    res.json({ profile, googleConnected: serviceAccountConfigured || oauthConfigured });
   } catch (error) {
     next(error);
   }
