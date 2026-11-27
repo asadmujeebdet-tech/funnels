@@ -14,10 +14,8 @@ import {
   ExternalLink,
     ImagePlus,
   Layers,
-  Gauge,
   Pencil,
   Plus,
-  Percent,
   RefreshCw,
   Search,
   Timer,
@@ -138,12 +136,11 @@ function formatEngagementTime(seconds: number | null): string {
 function MetricCard({ label, value, note, icon: Icon, tone }: {
   label: string;
   value: string;
-  note: string;
   icon: typeof Users;
   tone: "blue" | "violet" | "rose" | "green" | "amber" | "cyan";
 }) {
   const tones = { blue: "bg-blue-50 text-blue-600", violet: "bg-violet-50 text-violet-600", rose: "bg-rose-50 text-rose-600", green: "bg-emerald-50 text-emerald-600", amber: "bg-amber-50 text-amber-600", cyan: "bg-cyan-50 text-cyan-600" };
-  return <section className="rounded-2xl border border-line bg-surface p-4 shadow-card"><div className="flex items-start gap-2.5"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tones[tone]}`}><Icon size={16} aria-hidden="true" /></span><p className="min-h-8 text-xs font-medium leading-4 text-secondary">{label}</p></div><p className="mt-3 truncate text-2xl font-semibold tabular-nums tracking-tight text-primary">{value}</p>{note && <p className="mt-1 truncate text-xs text-muted">{note}</p>}</section>;
+  return <section className="rounded-2xl border border-line bg-surface p-4 shadow-card"><div className="flex items-start gap-2.5"><span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${tones[tone]}`}><Icon size={16} aria-hidden="true" /></span><p className="min-h-8 text-xs font-medium leading-4 text-secondary">{label}</p></div><p className="mt-3 truncate text-2xl font-semibold tabular-nums tracking-tight text-primary">{value}</p></section>;
 }
 
 const EMPTY_METRICS: OverviewMetrics = {
@@ -217,14 +214,12 @@ export function OverviewPage(props: Props) {
 
   const metrics = data?.metrics ?? EMPTY_METRICS;
   const cards = [
-    { label: "Active Users", value: metricNumber(metrics.activeUsers), note: "Selected period", icon: Users, tone: "blue" as const },
-    { label: "New Users", value: metricNumber(metrics.newUsers), note: "Selected period", icon: UserPlus, tone: "violet" as const },
-    { label: "Crash-affected Users", value: metricNumber(metrics.crashAffectedUsers), note: "GA4 crash reports", icon: Bug, tone: "rose" as const },
-    { label: "Engagement Rate", value: metrics.engagementRate === null ? "—" : `${(metrics.engagementRate * 100).toFixed(1)}%`, note: "Engaged sessions / sessions", icon: Percent, tone: "green" as const },
-    { label: "Average engagement time per active user", value: formatEngagementTime(metrics.userEngagementDuration !== null && metrics.activeUsers ? metrics.userEngagementDuration / metrics.activeUsers : null), note: "GA4 user engagement duration / active users", icon: Clock3, tone: "amber" as const },
-    { label: "Engaged sessions per active user", value: metricNumber(metrics.engagedSessionsPerActiveUser, 2), note: "GA4 engaged sessions / active users", icon: Activity, tone: "cyan" as const },
-    { label: "Average engagement time per session", value: formatEngagementTime(metrics.averageEngagementTimePerSession), note: "GA4 user engagement duration / sessions", icon: Timer, tone: "violet" as const },
-    { label: "Sessions per active user", value: metricNumber(metrics.sessionsPerActiveUser, 2), note: "GA4 metric", icon: Gauge, tone: "blue" as const },
+    { label: "Active Users", value: metricNumber(metrics.activeUsers), icon: Users, tone: "blue" as const },
+    { label: "New Users", value: metricNumber(metrics.newUsers), icon: UserPlus, tone: "violet" as const },
+    { label: "Crash-affected Users", value: metricNumber(metrics.crashAffectedUsers), icon: Bug, tone: "rose" as const },
+    { label: "Average engagement time per active user", value: formatEngagementTime(metrics.userEngagementDuration !== null && metrics.activeUsers ? metrics.userEngagementDuration / metrics.activeUsers : null), icon: Clock3, tone: "amber" as const },
+    { label: "Engaged sessions per active user", value: metricNumber(metrics.engagedSessionsPerActiveUser, 2), icon: Activity, tone: "cyan" as const },
+    { label: "Average engagement time per session", value: formatEngagementTime(metrics.averageEngagementTimePerSession), icon: Timer, tone: "violet" as const },
   ];
 
   if (appsLoading && !apps.length) return <AppShell profile={props.profile} googleConnected={props.googleConnected} onLogout={props.onLogout}><div className="skeleton h-10 w-64" /><div className="mt-5 grid gap-3 md:grid-cols-3">{[1, 2, 3].map((x) => <div key={x} className="skeleton h-28" />)}</div></AppShell>;
@@ -246,6 +241,7 @@ export function OverviewPage(props: Props) {
             </div>
           </Card>
         </div>
+        {loading && <div className="filter-loading-track" role="status" aria-label="Updating analytics"><span /></div>}
         {!props.googleConnected && <Alert kind="info">Connect Google Analytics to load actual GA4 metrics. Analytics values are not replaced with sample data.</Alert>}
         {props.googleConnected && app && !app.ga4PropertyId && <Alert kind="info">Set and test a GA4 Property ID for this app in Manage Apps before loading metrics.</Alert>}
         <div className={`mt-4 grid grid-cols-2 gap-3 md:grid-cols-4 ${loading ? "opacity-75" : "opacity-100"} transition-opacity duration-200`} aria-busy={loading}>
