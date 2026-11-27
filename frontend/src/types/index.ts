@@ -58,9 +58,11 @@ export type OverviewData = {
   metrics: OverviewMetrics;
   appVersions: string[];
   countries: string[];
+  timeZone?: string | null;
   funnels: Array<{
     id: string;
     name: string;
+    method?: "sequential" | "independent";
     events: Array<{
       eventName: string;
       activeUsers: number;

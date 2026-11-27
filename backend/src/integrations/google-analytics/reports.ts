@@ -357,7 +357,7 @@ export async function getOverviewChoices(
   propertyId: string,
   startDate: string,
   endDate: string,
-): Promise<{ appVersions: string[]; countries: string[] }> {
+): Promise<{ appVersions: string[]; countries: string[]; timeZone: string | null }> {
   const [versions, countries] = await Promise.all([
     client.runReport({
       property: `properties/${propertyId}`,
@@ -382,5 +382,6 @@ export async function getOverviewChoices(
   return {
     appVersions: values(versions),
     countries: values(countries),
+    timeZone: versions?.metadata?.timeZone ?? countries?.metadata?.timeZone ?? null,
   };
 }

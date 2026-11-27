@@ -148,6 +148,7 @@ analyticsRouter.get("/apps/:appId/ga4/overview", async (req, res, next) => {
       metrics,
       appVersions: choices.appVersions,
       countries: choices.countries,
+      timeZone: choices.timeZone,
       funnels: features.map((feature, featureIndex) => {
         const names = feature.events.map((event) => event.eventName);
         const users = funnelUsers[featureIndex];
@@ -162,6 +163,7 @@ analyticsRouter.get("/apps/:appId/ga4/overview", async (req, res, next) => {
         return {
         id: feature.id,
         name: feature.name,
+        method: users ? "sequential" : "independent",
         events: buildJourney(names, featurePopulations)
           .map(({ eventName, activeUsers, eventCount, dropPercentage }) => ({
             eventName,

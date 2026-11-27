@@ -238,7 +238,7 @@ export function OverviewPage(props: Props) {
         <div className={`mt-4 grid grid-cols-2 gap-3 xl:grid-cols-5 ${loading ? "opacity-75" : "opacity-100"} transition-opacity duration-200`} aria-busy={loading}>
           {cards.map((item) => <MetricCard key={item.label} {...item} value={loading && !data ? "…" : item.value} />)}
         </div>
-        <div className="mb-3 mt-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-primary">User Journey</h2><p className="mt-1 text-xs text-secondary">Event-level engagement across this application's configured funnels.</p></div><span className="text-xs text-muted">{data?.funnels.length ?? 0} funnels</span></div>
+        <div className="mb-3 mt-7 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-lg font-semibold text-primary">User Journey</h2><p className="mt-1 text-xs text-secondary">Event-level engagement across this application's configured funnels.{data?.timeZone ? ` Dates follow the GA4 property time zone (${data.timeZone}).` : ""}</p></div><span className="text-xs text-muted">{data?.funnels.length ?? 0} funnels</span></div>
         {loading && !data ? <Card><Skeleton rows={5} /></Card> : !data?.funnels.length ? <Card><Empty title={`No funnels created for ${app?.name ?? "this application"}.`} description="Create your first funnel to start analyzing user journeys." action={<Link className="button-primary" to={`/funnels?app=${encodeURIComponent(appId)}`}><Plus size={15} /> Create Funnel</Link>} /></Card> : <div className="space-y-4">
           {data.funnels.map((funnel, index) => <FunnelSection key={funnel.id} app={app} funnel={funnel} expanded={expanded[funnel.id] ?? index === 0} onToggle={() => setExpanded((current) => ({ ...current, [funnel.id]: !(current[funnel.id] ?? index === 0) }))} onEdit={() => navigate(`/funnels?app=${encodeURIComponent(appId)}&edit=${encodeURIComponent(funnel.id)}`)} />)}
         </div>}
@@ -250,21 +250,17 @@ export function OverviewPage(props: Props) {
 
 type FunnelSummary = OverviewData["funnels"][number];
 const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, onEdit }: { app?: Application; funnel: FunnelSummary; expanded: boolean; onToggle: () => void; onEdit: () => void }) {
-  const maxUsers = Math.max(1, ...funnel.events.map((event) => event.activeUsers));
   const rows = funnel.events.map((event, position) => {
     const previous = funnel.events[position - 1];
     const drop = position === 0 || !previous || previous.activeUsers === 0 ? null : event.dropPercentage;
-    const userIntensity = Math.max(0.06, event.activeUsers / maxUsers);
-    const dropIntensity = drop === null ? 0 : Math.min(1, Math.max(0, drop) / 100);
-    const dropColor = drop === null ? "transparent" : drop >= 70 ? "#ef4444" : drop >= 35 ? "#f59e0b" : "#10b981";
-    return { ...event, position, drop, userIntensity, dropIntensity, dropColor };
+    return { ...event, position, drop };
   });
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center gap-3 border-b border-line px-4 py-4 sm:px-5">
         <button onClick={onToggle} className="rounded-md p-1.5 text-secondary hover:bg-surface-soft" aria-label={`${expanded ? "Collapse" : "Expand"} ${funnel.name}`} aria-expanded={expanded}>{expanded ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</button>
         {app ? <IconTile app={app} size="sm" /> : <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-50 text-indigo-600"><Layers size={17} /></span>}
-        <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold text-primary">{funnel.name}</h3><p className="mt-0.5 text-[11px] text-muted">{funnel.events.length} ordered events · Event Population analysis</p></div>
+        <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold text-primary">{funnel.name}</h3><p className="mt-0.5 text-[11px] text-muted">{funnel.events.length} ordered events · {funnel.method === "independent" ? "Independent event users (funnel report unavailable)" : "Sequential funnel users (GA4 funnel report)"}</p></div>
         <button className="button-secondary !px-2.5 !py-2 text-xs" onClick={onEdit} aria-label={`Edit ${funnel.name}`}><Pencil size={14} className="text-rose-600" /><span className="hidden sm:inline">Edit</span></button>
       </div>
       {expanded && <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs">
@@ -272,9 +268,9 @@ const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, 
         <tbody className="divide-y divide-line">{rows.map((event) => <tr key={`${funnel.id}-${event.eventName}`} className="transition-colors duration-150 hover:bg-surface-soft">
           <td className="px-4 py-3 text-sm font-semibold tabular-nums text-secondary">{String(event.position + 1).padStart(2, "0")}</td>
           <td className="px-4 py-3 font-mono text-[13px] font-medium text-primary">{event.eventName}</td>
-          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary"><span className="inline-block min-w-20 rounded px-2 py-1" style={{ backgroundColor: `color-mix(in srgb, #6366f1 ${Math.round(event.userIntensity * 26)}%, transparent)` }}>{event.activeUsers.toLocaleString()}</span></td>
+          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary">{event.activeUsers.toLocaleString()}</td>
           <td className="px-4 py-3 text-right text-sm font-medium tabular-nums text-primary">{event.eventCount.toLocaleString()}</td>
-          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary"><span className="inline-block min-w-16 rounded px-2 py-1" style={{ backgroundColor: event.drop === null ? "transparent" : `color-mix(in srgb, ${event.dropColor} ${Math.round(event.dropIntensity * 32)}%, transparent)` }}>{event.drop === null ? "—" : event.drop > 0 ? <span className="font-bold text-rose-600 dark:text-rose-400">{`-${event.drop.toFixed(1)}%`}</span> : `${event.drop.toFixed(1)}%`}</span></td>
+          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary">{event.drop === null ? "—" : event.drop > 0 ? <span className="font-bold text-rose-600 dark:text-rose-400">{`-${event.drop.toFixed(1)}%`}</span> : `${event.drop.toFixed(1)}%`}</td>
         </tr>)}</tbody>
       </table></div>}
     </Card>
