@@ -268,14 +268,14 @@ const FunnelSection = function FunnelSection({ app, funnel, expanded, onToggle, 
         <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-semibold text-primary">{funnel.name}</h3><p className="mt-0.5 text-[11px] text-muted">{funnel.events.length} ordered events · {funnel.method === "independent" ? "Independent event users (funnel report unavailable)" : "Sequential funnel users (GA4 funnel report)"}</p></div>
         <button className="button-secondary !px-2.5 !py-2 text-xs" onClick={onEdit} aria-label={`Edit ${funnel.name}`}><Pencil size={14} className="text-rose-600" /><span className="hidden sm:inline">Edit</span></button>
       </div>
-      {expanded && <div className="overflow-x-auto"><table className="w-full min-w-[680px] text-left text-xs">
-        <thead className="sticky top-0 bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="w-16 px-4 py-3.5 font-bold">Step</th><th className="px-4 py-3.5 font-bold">Event Name</th><th className="px-4 py-3 text-right font-semibold">Total Users</th><th className="px-4 py-3 text-right font-semibold">Event Count</th><th className="px-4 py-3 text-right font-semibold">Drop %</th></tr></thead>
+      {expanded && <div className="overflow-x-auto"><table className="w-full min-w-[680px] table-fixed text-left text-xs">
+        <thead className="sticky top-0 bg-surface-soft text-xs font-semibold uppercase tracking-wide text-secondary"><tr><th className="w-16 px-4 py-3.5 font-bold">Step</th><th className="px-4 py-3.5 font-bold">Event Name</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Total Users</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Event Count</th><th className="w-[18%] px-4 py-3.5 text-center font-bold">Drop %</th></tr></thead>
         <tbody className="divide-y divide-line">{rows.map((event) => <tr key={`${funnel.id}-${event.eventName}`} className="transition-colors duration-150 hover:bg-surface-soft">
           <td className="px-4 py-3 text-sm font-semibold tabular-nums text-secondary">{String(event.position + 1).padStart(2, "0")}</td>
           <td className="px-4 py-3 font-mono text-[13px] font-medium text-primary">{event.eventName}</td>
-          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary">{event.activeUsers.toLocaleString()}</td>
-          <td className="px-4 py-3 text-right text-sm font-medium tabular-nums text-primary">{event.eventCount.toLocaleString()}</td>
-          <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums text-primary">{event.drop === null ? "—" : event.drop > 0 ? <span className="font-bold text-rose-600 dark:text-rose-400">{`-${event.drop.toFixed(1)}%`}</span> : `${event.drop.toFixed(1)}%`}</td>
+          <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-primary">{event.activeUsers.toLocaleString()}</td>
+          <td className="px-4 py-3 text-center text-sm font-medium tabular-nums text-primary">{event.eventCount.toLocaleString()}</td>
+          <td className="px-4 py-3 text-center text-sm font-semibold tabular-nums text-primary">{event.drop === null ? "—" : event.drop > 0 ? <span className="font-bold text-rose-600 dark:text-rose-400">{`-${event.drop.toFixed(1)}%`}</span> : `${event.drop.toFixed(1)}%`}</td>
         </tr>)}</tbody>
       </table></div>}
     </Card>
