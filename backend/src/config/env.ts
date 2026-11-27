@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
-import { z } from "zod";
 
 for (const path of [
   resolve(process.cwd(), ".env.local"),
@@ -20,6 +19,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_REDIRECT_URI: z.string().url().default("http://localhost:3000/api/v1/auth/google/callback"),
+  GOOGLE_OAUTH_SETUP_SECRET: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_JSON: z.string().optional(),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().optional(),
   GOOGLE_PRIVATE_KEY: z.string().optional(),
